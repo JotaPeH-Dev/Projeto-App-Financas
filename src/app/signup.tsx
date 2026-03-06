@@ -1,14 +1,23 @@
 import { Button } from "@/app/Components/Button";
 import { Input } from "@/app/Components/input";
 import { Link } from "expo-router";
-import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, 
+  KeyboardAvoidingView, 
+  Platform, 
+  ScrollView, 
+  StyleSheet, 
+  Text, 
+  View } from "react-native";
 
 export default function Signup() {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.select({ ios: "padding", android: "height" })}>
-    <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled"
+    
+    <ScrollView 
+    contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
       >
+    
     <View style={styles.container}>
       <Image
         source={require("@/app/assets/3962434.jpg")}

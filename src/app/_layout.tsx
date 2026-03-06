@@ -1,10 +1,15 @@
 import { Stack } from "expo-router";
+import { AuthProvider } from "@/app/contexts/AuthContext"; // Verifique se o caminho da pasta é context ou contexts
 
-export default function Layout() {
+export default function RootLayout() {
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="index" />
-      <Stack.Screen name="signup" />
-    </Stack>
-  )
+    <AuthProvider>
+      <Stack screenOptions={{ headerShown: false }}>
+        {/* Aqui você define as telas que o Stack vai gerenciar */}
+        <Stack.Screen name="index" />
+        <Stack.Screen name="signup" />
+        {/* Se você tiver uma tela de home, adicione ela aqui também futuramente */}
+      </Stack>
+    </AuthProvider>
+  );
 }
