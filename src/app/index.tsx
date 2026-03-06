@@ -1,29 +1,67 @@
-import { Image, StyleSheet, Text, View } from "react-native";
-
-import { Input } from "@/app/Components/input"; 
+import  { useState } from "react";
 import { Button } from "@/app/Components/Button";
+import { Input } from "@/app/Components/input";
+import { Link } from "expo-router";
+import { 
+  Alert, 
+  Image, 
+  KeyboardAvoidingView, 
+  Platform, 
+  ScrollView, 
+  StyleSheet, 
+  Text, 
+  View } 
+  from "react-native";
+
 export default function Index() {
+  const [email, setEmail] = useState(""); 
+  const [password, setPassword] = useState(""); 
+  function handleLogin() {
+   // Alert.alert("Login", "Funcionalidade de Login acionada.")
+   if (!email.trim() || !password.trim()) {
+     Alert.alert("Erro", "Por favor, preencha e-mail e senha para entrar.");
+     return;
+   }
+ 
+ Alert.alert("Bem-", `Login realizado com: ${email}`);
+ 
+  }
+
   return (
-    <View style={styles.container}>
-      <Image
-        source={require("@/app/assets/9518505.jpg")}
-        style={styles.illustration}
-      />
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.select({ ios: "padding", android: "height" })}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.container}>
+          <Image
+            source={require("@/app/assets/9518505.jpg")}
+            style={styles.illustration}
+          />
 
-      <Text style={styles.title}>Entrar</Text>
-      <Text style={styles.subtitle}>Acesse sua conta com e-mail e senha.</Text>
+          <Text style={styles.title}>Entrar{email}</Text>
+          <Text style={styles.subtitle}>Acesse sua conta com e-mail e senha.</Text>
 
-      <View style={styles.form}>
-        <Input placeholder="E-mail" keyboardType="email-address"/>
-        <Input placeholder="Senha" secureTextEntry />
-        <Button label="Entrar" />
-        <Button label="Criar Conta" />
-      </View>
+          <View style={styles.form}>
+            <Input 
+            placeholder="E-mail" 
+            keyboardType="email-address" 
+            onChangeText={setEmail} 
+            />
 
-      <Text style={styles.footerText}>  
-        Não tem uma conta? Cadastre-se aqui</Text>
-      
-    </View>
+            <Input placeholder="Senha" secureTextEntry onChangeText={setPassword}/>
+            <Button label="Entrar" onPress={handleLogin} />
+
+          </View>
+
+          <Text style={styles.footerText}>
+            Não tem uma conta? {"  "}
+            <Link href="/signup" style={styles.footerLink}>
+              Cadastre-se aqui.
+            </Link>
+          </Text>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   )
 }
 
@@ -35,7 +73,7 @@ const styles = StyleSheet.create({
   },
   illustration: {
     width: "100%",
-    height: 300,
+    height: 450,
     resizeMode: "contain",
     marginTop: 62,
   },
@@ -54,6 +92,10 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 24,
     color: "#585860",
+  },
+  footerLink: {
+    color: "#032ad7",
+    fontWeight: "700",
   },
 
 
