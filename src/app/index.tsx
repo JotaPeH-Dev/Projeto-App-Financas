@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
   },
   illustration: {
     width: "100%",
-    height: 330,
+    height: 300,
     resizeMode: "contain",
     marginTop: 62,
   },
