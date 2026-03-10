@@ -1,3 +1,6 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "@/contexts/AuthContext";
+import { TouchableOpacity } from "react-native";
 import {
   StyleSheet,
   Text,
@@ -13,14 +16,13 @@ const transactions = [
 ];
 
 export default function Home() {
-  // 1. Lógica do Saldo Corrigida
+  const { signOut } = useAuth();
+  
   const totalBalance = transactions.reduce((acc, transaction) => {
-    // Convertendo a string "R$ 150,00" em número real
     const value = parseFloat(
       transaction.value.replace("R$ ", "").replace(".", "").replace(",", ".")
     );
 
-    // USAMOS 'transaction' (o nome que você deu no parâmetro)
     if (transaction.type === "income") {
       return acc + value;
     } else {
@@ -28,7 +30,6 @@ export default function Home() {
     }
   }, 0);
 
-  // 2. Formatação do Saldo (Removi o "R$" extra pois o toLocaleString já coloca)
   const formattedBalance = totalBalance.toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
@@ -38,11 +39,20 @@ export default function Home() {
     <View style={styles.container}>
       {/* HEADER / SALDO */}
       <View style={styles.header}>
-        <Text style={styles.greeting}>Olá, João</Text>
-        <Text style={styles.balanceValue}>{formattedBalance}</Text>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+          <View>
+            <Text style={styles.greeting}>Olá, João</Text>
+            <Text style={styles.balanceValue}>{formattedBalance}</Text>
+          </View>
+
+          {/* BOTÃO LOGOUT (Coloquei dentro do Row do Header para ficar alinhado) */}
+          <TouchableOpacity onPress={signOut} style={{ padding: 8 }}>
+            <Ionicons name="log-out-outline" size={28} color="#fff" />
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* 3. LISTA DE TRANSAÇÕES (Agora dentro do return principal) */}
+      {/* 3. LISTA DE TRANSAÇÕES */}
       <View style={styles.content}>
         <Text style={styles.sectionTitle}>Últimas movimentações</Text>
 
@@ -68,9 +78,9 @@ export default function Home() {
           )}
         />
       </View>
-    </View>
-  );
-}
+    </View> 
+  ); 
+} 
 
   {/* LISTA DE TRANSAÇÕES */ }
 
