@@ -1,15 +1,23 @@
+import { z } from "zod";
 import { Button } from "@/app/Components/Button";
 import { Input } from "@/app/Components/input";
 import { Link } from "expo-router";
-import { Image, 
-  KeyboardAvoidingView, 
-  Platform, 
-  ScrollView, 
-  StyleSheet, 
-  Text, 
-  View } from "react-native";
+import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 
 export default function Signup() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [errors, setErrors] = useState<any>({});
+
+  function handleSignup() {
+    const result = signupSchema.safeParse({ name, email, password, confirmPassword });
+    if (!result.success) {
+      setErrors(result.error.flatten().fieldErrors);
+      return;
+    }
+  }
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.select({ ios: "padding", android: "height" })}>
     
