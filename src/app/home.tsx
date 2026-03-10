@@ -26,23 +26,26 @@ const transactions = [
     <View style={styles.content}>
       <Text style={styles.sectionTitle}>Ultimas movimentações</Text>
       
-      <Flatlist
-      data={transactions}
-      keyExtractor={(item) => item.id}
-      showsVerticalScrollIndicator={false}
-      renderItem={({ item }) => (
-        <View style={styles.transactionItem}>
-      <View>
-        <Text style={styles.transactionLabel}>{item.label}</Text>
-        <Text style={styles.transactionDate}>{item.date}</Text>
+    <FlatList
+          data={TRANSACTIONS}
+          keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <View style={styles.transactionItem}>
+              <View>
+                <Text style={styles.transactionLabel}>{item.label}</Text>
+                <Text style={styles.transactionDate}>{item.date}</Text>
+              </View>
+              <Text style={[
+                styles.transactionValue, 
+                { color: item.type === 'income' ? '#10B981' : '#EF4444' }
+              ]}>
+                {item.type === 'expense' ? `- ${item.value}` : item.value}
+              </Text>
+            </View>
+          )}
+        />
       </View>
-  <text style={styles.transactionValue,
-  {color: item.type === "income" ? "green" : "red"}}>{item.value}]}>
-  {item.type === 'expense' ? '- ${item.value}' : item.value}
-  </text>
-  </View>
-      )} 
-      />
     </View>
-  )
+  );
 }
