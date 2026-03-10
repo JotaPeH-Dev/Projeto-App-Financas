@@ -1,15 +1,45 @@
 import { Stack } from "expo-router";
-import { AuthProvider } from "@/contexts/AuthContext"; // Verifique se o caminho da pasta é context ou contexts
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { useEffect } from "react";
+import { useRouter, useSegments } from "expo-router";
+
+function MainLayout() {
+  const { user, loading } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+  const currentSegment = segments[0] || as string;
+
+if (!user && currentSegment !== "" && currentSegment !== "signup") {
+  router.replace("/");}
+else if (user && (currentSegment === "" || currentSegment === "signup")) {
+  router.replace("/home");
+}
+  useEffect(() => {
+    if (loading) return;
+
+    // Se não tem usuário e não está nas telas de login/cadastro, manda para o login (index)
+    if (!user && segments[0] !== "index" && segments[0] !== "signup") {
+      router.replace("/");
+    } 
+    // Se já está logado e tenta voltar pro login ou signup, manda para a home
+    else if (user && (segments[0] === "index" || segments[0] === "signup")) {
+      router.replace("/home");
+    }
+  }, [user, loading, segments]);
+
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
+      <Stack.Row name="signup" />
+      <Stack.Screen name="home" />
+    </Stack>
+  );
+}
 
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <Stack screenOptions={{ headerShown: false }}>
-        {/* Aqui você define as telas que o Stack vai gerenciar */}
-        <Stack.Screen name="index" />
-        <Stack.Screen name="signup" />
-        {/* Se você tiver uma tela de home, adicione ela aqui também futuramente */}
-      </Stack>
+      <MainLayout />
     </AuthProvider>
   );
 }
