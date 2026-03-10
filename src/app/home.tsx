@@ -2,14 +2,14 @@ import {View,
   Text,
   StyleSheet,
   ScrollView,
-  Flatlist
+  FlatList,
 } from "react-native";
 
 //teste de dados
 const transactions = [
-  { id: "1", label: "Supermercado", value: "R$ 150,00", date: "07/03/2026" },
-  { id: "2", label: "Salário", value: "R$ 3.000,00", date: "05/03/2026" },
-  { id: "3", label: "Aluguel", value: "R$ 1.200,00", date: "01/03/2026" },
+  { id: "1", label: "Supermercado", value: "R$ 150,00", type: "expense", date: "07/03/2026" },
+  { id: "2", label: "Salário", value: "R$ 3.000,00", type: "income", date: "05/03/2026" },
+  { id: "3", label: "Aluguel", value: "R$ 1.200,00", type: "expense", date: "01/03/2026" },
 ];
 
 export default function Home() {
@@ -17,8 +17,8 @@ export default function Home() {
       <View style={styles.container}>
         {/* HEADER / SALDO */ }
         <View style={styles.header}>
-          <Text styles={styles.greeting}>Olá, João</Text>
-          <Text styles={styles.balanceValue}>Saldo: R$ 1.850,00</Text>
+          <Text style={styles.greeting}>Olá, João</Text>
+          <Text style={styles.balanceValue}>Saldo: R$ 1.850,00</Text>
         </View>
       </View>
     )
@@ -28,7 +28,7 @@ export default function Home() {
       <Text style={styles.sectionTitle}>Ultimas movimentações</Text>
       
     <FlatList
-          data={TRANSACTIONS}
+          data={transactions}
           keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
@@ -47,8 +47,6 @@ export default function Home() {
           )}
         />
       </View>
-    </View>
-  );
 }
 
 const styles = StyleSheet.create({
@@ -57,8 +55,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F4F4F5',
   },
   header: {
-    backgroundColr: '#032ad7',
-    paddinTop: 64,
+    backgroundColor: '#032ad7',
+    paddingTop: 64,
     paddingHorizontal: 24,
     paddingBottom: 32,
     borderBottomLeftRadius: 32,
