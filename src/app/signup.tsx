@@ -3,7 +3,13 @@ import { z } from "zod";
 import { Button } from "@/app/Components/Button";
 import { Input } from "@/app/Components/input";
 import { Link } from "expo-router";
-import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, 
+  KeyboardAvoidingView, 
+  Platform, 
+  ScrollView, 
+  StyleSheet, 
+  Text, 
+  View } from "react-native";
 
 export default function Signup() {
   const [name, setName] = useState("");
@@ -11,6 +17,15 @@ export default function Signup() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState<any>({});
+  const signupSchema = z.object({
+    name: z.string().min(3, "O nome deve conter no mínimo 3 caracteres"),
+    email: z.string().email("E-mail inválido"),
+    password: z.string().min(6, "A senha deve conter no mínimo 6 caracteres"),
+    confirmPassword: z.string()
+  }).refine((data) => data.password === data.confirmPassword, {
+    message: "As senhas não coincidem",
+    path: ["confirmPassword"],
+  });
 
   function handleSignup() {
     const result = signupSchema.safeParse({ name, email, password, confirmPassword });
@@ -37,11 +52,15 @@ export default function Signup() {
       <Text style={styles.subtitle}>Crie sua conta para acessar.</Text>
 
       <View style={styles.form}>
-        <Input placeholder="Nome"/>       
-        <Input placeholder="E-mail" keyboardType="email-address"/>
-        <Input placeholder="Senha" secureTextEntry />
-        <Input placeholder="Confirmar Senha" secureTextEntry />
-        <Button label="Cadastrar" />
+        <Input placeholder="Nome"  
+        onChangeText={setName} value={name}/>     
+        <Input placeholder="E-mail" keyboardType="email-address"
+        onChangeText={setEmail} value={email}/>
+        <Input placeholder="Senha" secureTextEntry 
+        onChangeText={setPassword} value={password}/>
+        <Input placeholder="Confirmar Senha" secureTextEntry 
+        onChangeText={setConfirmPassword} value={confirmPassword}/>
+        <Button label="Cadastrar" onPress={handleSignup}/>
       </View>
 
       <Text style={styles.footerText}>  

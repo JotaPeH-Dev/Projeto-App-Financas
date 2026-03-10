@@ -1,7 +1,7 @@
-import {View,
-  Text,
+import {
   StyleSheet,
-  ScrollView,
+  Text,
+  View, 
   FlatList,
 } from "react-native";
 
@@ -13,21 +13,40 @@ const transactions = [
 ];
 
 export default function Home() {
-    return (
-      <View style={styles.container}>
-        {/* HEADER / SALDO */ }
-        <View style={styles.header}>
-          <Text style={styles.greeting}>Olá, João</Text>
-          <Text style={styles.balanceValue}>Saldo: R$ 1.850,00</Text>
-        </View>
-      </View>
-    )
+  // 1. Lógica do Saldo Corrigida
+  const totalBalance = transactions.reduce((acc, transaction) => {
+    // Convertendo a string "R$ 150,00" em número real
+    const value = parseFloat(
+      transaction.value.replace("R$ ", "").replace(".", "").replace(",", ".")
+    );
 
-    {/* LISTA DE TRANSAÇÕES */ }
-    <View style={styles.content}>
-      <Text style={styles.sectionTitle}>Ultimas movimentações</Text>
-      
-    <FlatList
+    // USAMOS 'transaction' (o nome que você deu no parâmetro)
+    if (transaction.type === "income") {
+      return acc + value;
+    } else {
+      return acc - value;
+    }
+  }, 0);
+
+  // 2. Formatação do Saldo (Removi o "R$" extra pois o toLocaleString já coloca)
+  const formattedBalance = totalBalance.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+
+  return (
+    <View style={styles.container}>
+      {/* HEADER / SALDO */}
+      <View style={styles.header}>
+        <Text style={styles.greeting}>Olá, João</Text>
+        <Text style={styles.balanceValue}>{formattedBalance}</Text>
+      </View>
+
+      {/* 3. LISTA DE TRANSAÇÕES (Agora dentro do return principal) */}
+      <View style={styles.content}>
+        <Text style={styles.sectionTitle}>Últimas movimentações</Text>
+
+        <FlatList
           data={transactions}
           keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
@@ -37,17 +56,24 @@ export default function Home() {
                 <Text style={styles.transactionLabel}>{item.label}</Text>
                 <Text style={styles.transactionDate}>{item.date}</Text>
               </View>
-              <Text style={[
-                styles.transactionValue, 
-                { color: item.type === 'income' ? '#10B981' : '#EF4444' }
-              ]}>
-                {item.type === 'expense' ? `- ${item.value}` : item.value}
+              <Text
+                style={[
+                  styles.transactionValue,
+                  { color: item.type === "income" ? "#10B981" : "#EF4444" },
+                ]}
+              >
+                {item.type === "expense" ? `- ${item.value}` : item.value}
               </Text>
             </View>
           )}
         />
       </View>
+    </View>
+  );
 }
+
+  {/* LISTA DE TRANSAÇÕES */ }
+
 
 const styles = StyleSheet.create({
   container: {
@@ -102,7 +128,7 @@ const styles = StyleSheet.create({
   transactionLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color : '#1A1A1E',
+    color: '#1A1A1E',
   },
   transactionDate: {
     fontSize: 12,
