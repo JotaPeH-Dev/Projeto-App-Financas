@@ -1,5 +1,5 @@
 import { Stack } from "expo-router";
-import { AuthProvider } from "@/app/contexts/AuthContext"; // Verifique se o caminho da pasta é context ou contexts
+import { AuthProvider } from "@/app/context/index.tsx"; // Verifique se o caminho da pasta é context ou contexts
 
 export default function RootLayout() {
   return (
