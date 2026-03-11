@@ -10,26 +10,25 @@ function MainLayout() {
 
   
 useEffect(() => {
-  // 1. Verifique se ainda estamos carregando os dados do AsyncStorage 
-  if (loading) return;
+    if (loading) return;
 
-  // 2. Pegamos o segmento atual (ex: "home", "login" ou undefined para raiz)
-  const currentSegment = segments[0];
+    // Forçamos o tipo para string para o TS parar de reclamar das rotas automáticas
+    const currentSegment = segments[0] as string | undefined;
 
-  // 3. Se o usuário NÃO ESTÁ LOGADO, redirecionamos para a tela de login
-  const isAtRoot = !currentSegment || currentSegment === "(auth)" || currentSegment === "index";
-  const isAtSignup = currentSegment === "signup";
+    // Verificamos se o usuário está em telas públicas (Login ou Cadastro)
+    // No Expo Router, a raiz "/" costuma vir como undefined ou "index"
+    const isAtRoot = !currentSegment || currentSegment === "index" || currentSegment === "(auth)";
+    const isAtSignup = currentSegment === "signup";
 
-  //4. Lógica de proteção de rotas
-  if (!user && !isAtRoot && !isAtSignup) {
-    // Usuário deslogado tentando acessar area restrita -> redireciona para login (index)
-    router.replace("/index");
-  } 
-  else if (user && (isAtRoot || isAtSignup)) {
-    // Usuário logado tentando acessar login ou signup -> redireciona para home
-    router.replace("/home");
-  }
-}, [user, loading, segments]);
+    if (!user && !isAtRoot && !isAtSignup) {
+      // Se não tem usuário e NÃO está no login/signup -> Vai para o Login
+      router.replace("/");
+    } 
+    else if (user && (isAtRoot || isAtSignup)) {
+      // Se TEM usuário e tenta entrar no login/signup -> Vai para a Home
+      router.replace("/home");
+    }
+  }, [user, loading, segments]);
 
 // Enquanto carrega o login, mostramos nada (ou um componente de loading/spinner)
 if (loading) return null;
