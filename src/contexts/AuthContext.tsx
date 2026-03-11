@@ -1,85 +1,41 @@
-import { createContext, useState, useContext, ReactNode, useEffect } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-}
+export const AuthContext = createContext({} as any);
 
-interface AuthContextData {
-  user: User | null;
-  signIn: (email: string, password: string) => Promise<void>;
-  signOut: () => Promise<void>;
-  loading: boolean;
-}
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-const AuthContext = createContext<AuthContextData | undefined>(undefined);
-
-
-// ... mantenha suas interfaces User e AuthContextData aqui ...
-
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true); // Estado para saber se estamos lendo do disco
-
-  // BUSCAR DADOS AO ABRIR O APP
   useEffect(() => {
-  async function loadStorageData() {
-    try {
-      const storageUser = await AsyncStorage.getItem("@financas:user");
+    async function loadStorageData() {
+      const storageUser = await AsyncStorage.getItem("@AppFinancas:user");
       if (storageUser) {
         setUser(JSON.parse(storageUser));
       }
-    } catch (error) {
-      console.error("Erro ao carregar dados do storage", error);
-    } finally {
-      // Garante que o loading saia de true mesmo se der erro
       setLoading(false);
     }
-  }
+    loadStorageData();
+  }, []);
 
-  loadStorageData();
-}, []);
-  async function signIn(email: string, password: string) {
-    // Simulação de login
-    if (email === "test@test.com" && password === "password") {
-      const userData = {
-        id: "1",
-        name: "João Silva",
-        email: email,
-      };
-
-      setUser(userData);
-      
-      // SALVAR NO DISCO
-      await AsyncStorage.setItem("@financas:user", JSON.stringify(userData));
-    } else {
-      throw new Error("E-mail ou senha inválidos");
-    }
+  async function signIn(email: string) {
+    // Simulando um login (aqui você faria a chamada para uma API)
+    const data = { id: '1', name: 'João Pedro', email };
+    
+    setUser(data);
+    await AsyncStorage.setItem("@AppFinancas:user", JSON.stringify(data));
   }
 
   async function signOut() {
-    // REMOVER DO DISCO
-    await AsyncStorage.removeItem("@financas:user");
+    await AsyncStorage.removeItem("@AppFinancas:user");
     setUser(null);
   }
 
   return (
-    <AuthContext.Provider value={{ user, signIn, signOut, loading }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-// Verifique se o 'export' está presente aqui!
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  
-  if (!context) {
-    throw new Error("useAuth deve ser usado dentro de um AuthProvider");
-  }
-
-  return context;
-}
+export const useAuth = () => useContext(AuthContext);
