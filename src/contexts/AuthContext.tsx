@@ -25,18 +25,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // BUSCAR DADOS AO ABRIR O APP
   useEffect(() => {
-    async function loadStorageData() {
+  async function loadStorageData() {
+    try {
       const storageUser = await AsyncStorage.getItem("@financas:user");
-
       if (storageUser) {
         setUser(JSON.parse(storageUser));
       }
+    } catch (error) {
+      console.error("Erro ao carregar dados do storage", error);
+    } finally {
+      // Garante que o loading saia de true mesmo se der erro
       setLoading(false);
     }
+  }
 
-    loadStorageData();
-  }, []);
-
+  loadStorageData();
+}, []);
   async function signIn(email: string, password: string) {
     // Simulação de login
     if (email === "test@test.com" && password === "password") {
