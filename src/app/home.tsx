@@ -1,12 +1,13 @@
+import React from 'react'; // Adicione se não tiver
+import { 
+  StyleSheet, 
+  Text, 
+  View, 
+  FlatList, 
+  TouchableOpacity 
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/AuthContext";
-import { TouchableOpacity } from "react-native";
-import {
-  StyleSheet,
-  Text,
-  View, 
-  FlatList,
-} from "react-native";
 
 //teste de dados
 const transactions = [

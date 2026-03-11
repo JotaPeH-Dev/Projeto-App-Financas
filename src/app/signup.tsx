@@ -1,15 +1,17 @@
-import { useState } from "react";
-import { z } from "zod";
-import { Button } from "@/app/Components/Button";
-import { Input } from "@/app/Components/input";
+import { Button } from "Components/Button";
+import { Input } from "Components/input";
 import { Link } from "expo-router";
-import { Image, 
-  KeyboardAvoidingView, 
-  Platform, 
-  ScrollView, 
-  StyleSheet, 
-  Text, 
-  View } from "react-native";
+import { useState } from "react";
+import {
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View
+} from "react-native";
+import { z } from "zod";
 
 export default function Signup() {
   const [name, setName] = useState("");
@@ -36,41 +38,41 @@ export default function Signup() {
   }
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.select({ ios: "padding", android: "height" })}>
-    
-    <ScrollView 
-    contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled"
-      showsVerticalScrollIndicator={false}
+
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-    
-    <View style={styles.container}>
-      <Image
-        source={require("@/app/assets/3962434.jpg")}
-        style={styles.illustration}
-      />
 
-      <Text style={styles.title}>Cadastar</Text>
-      <Text style={styles.subtitle}>Crie sua conta para acessar.</Text>
+        <View style={styles.container}>
+          <Image
+            source={require("@/app/assets/3962434.jpg")}
+            style={styles.illustration}
+          />
 
-      <View style={styles.form}>
-        <Input placeholder="Nome"  
-        onChangeText={setName} value={name}/>     
-        <Input placeholder="E-mail" keyboardType="email-address"
-        onChangeText={setEmail} value={email}/>
-        <Input placeholder="Senha" secureTextEntry 
-        onChangeText={setPassword} value={password}/>
-        <Input placeholder="Confirmar Senha" secureTextEntry 
-        onChangeText={setConfirmPassword} value={confirmPassword}/>
-        <Button label="Cadastrar" onPress={handleSignup}/>
-      </View>
+          <Text style={styles.title}>Cadastar</Text>
+          <Text style={styles.subtitle}>Crie sua conta para acessar.</Text>
 
-      <Text style={styles.footerText}>  
-        Já tem uma conta? {" "}
-        <Link href="/" style={styles.footerLink}>
-         Fazer Login.
-        </Link>
-      </Text>
-    </View>
-    </ScrollView>
+          <View style={styles.form}>
+            <Input placeholder="Nome"
+              onChangeText={setName} value={name} />
+            <Input placeholder="E-mail" keyboardType="email-address"
+              onChangeText={setEmail} value={email} />
+            <Input placeholder="Senha" secureTextEntry
+              onChangeText={setPassword} value={password} />
+            <Input placeholder="Confirmar Senha" secureTextEntry
+              onChangeText={setConfirmPassword} value={confirmPassword} />
+            <Button label="Cadastrar" onPress={handleSignup} />
+          </View>
+
+          <Text style={styles.footerText}>
+            Já tem uma conta? {" "}
+            <Link href="/" style={styles.footerLink}>
+              Fazer Login.
+            </Link>
+          </Text>
+        </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   )
 }

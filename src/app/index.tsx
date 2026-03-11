@@ -1,19 +1,19 @@
 //-----------------------  Importações --------------------------
-import { z } from "zod";
-import { useState } from "react";
-import { Button } from "@/app/Components/Button";
-import { Input } from "@/app/Components/input";
+import { Button } from "Components/Button";
+import { Input } from "Components/input";
 import { Link } from "expo-router";
-import { 
-  Alert, 
-  Image, 
-  KeyboardAvoidingView, 
-  Platform, 
-  ScrollView, 
-  StyleSheet, 
-  Text, 
-  View 
+import { useState } from "react";
+import {
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View
 } from "react-native";
+import { z } from "zod";
 
 //------------------- Declaração de constantes ---------------
 // 1. Defina o schema FORA do componente (Corrigi o nome para loginSchema)
@@ -28,16 +28,16 @@ const loginSchema = z.object({
 
 export default function Index() {
   const [name, setName] = useState("");
-  const [email, setEmail] = useState(""); 
-  const [password, setPassword] = useState(""); 
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   // Definindo o tipo para o TS não reclamar do 'prev'
   const [errors, setErrors] = useState<any>({});
-  const [confirmPassword, setConfirmPassword] = useState(""); 
+  const [confirmPassword, setConfirmPassword] = useState("");
 
-//------------------- Declaração de funções --------------- 
+  //------------------- Declaração de funções --------------- 
   function handleLogin() {
     // 2. Use o nome correto da variável aqui
-    const result = loginSchema.safeParse({ email, password }); 
+    const result = loginSchema.safeParse({ email, password });
 
     if (!result.success) {
       const fieldErrors = result.error.flatten().fieldErrors;
@@ -48,15 +48,15 @@ export default function Index() {
     }
   }
 
-//------------------- Definição de estilos --------------- 
+  //------------------- Definição de estilos --------------- 
 
   return (
-    <KeyboardAvoidingView 
-      style={{ flex: 1 }} 
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent} 
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -72,11 +72,11 @@ export default function Index() {
           </View>
 
           <View style={styles.form}>
-            <Input 
-              keyboardType="email-address" 
+            <Input
+              keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
-              placeholder="E-mail" 
+              placeholder="E-mail"
               onChangeText={(text) => {
                 setEmail(text);
                 if (errors.email) setErrors((prev: any) => ({ ...prev, email: null }));
@@ -84,9 +84,9 @@ export default function Index() {
             />
             {errors.email && <Text style={styles.errorText}>{errors.email[0]}</Text>}
 
-            <Input 
-              placeholder="Senha" 
-              secureTextEntry 
+            <Input
+              placeholder="Senha"
+              secureTextEntry
               onChangeText={(text) => {
                 setPassword(text);
                 if (errors.password) setErrors((prev: any) => ({ ...prev, password: null }));
