@@ -38,7 +38,7 @@ return (
   <Stack screenOptions={{ headerShown: false }} >
     <Stack.Screen name="index" />
     <Stack.Screen name="signup" />
-    <stack.Screen name="home" />
+    <Stack.Screen name="home" />
     {/* Se você tiver uma pasta (tabs), mude o nome para "(tabs)" */}
     </Stack>
 );
