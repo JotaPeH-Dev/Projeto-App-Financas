@@ -1,4 +1,3 @@
-//-----------------------  Importações --------------------------
 import { Button } from "Components/Button";
 import { Input } from "Components/input";
 import { Link } from "expo-router";
@@ -14,29 +13,23 @@ import {
   View
 } from "react-native";
 import { z } from "zod";
+import { useAuth } from "@/contexts/AuthContext";
 
-//------------------- Declaração de constantes ---------------
-// 1. Defina o schema FORA do componente (Corrigi o nome para loginSchema)
+// 1. Schema de validação
 const loginSchema = z.object({
   email: z.string().email("E-mail inválido").min(1, "E-mail é obrigatório"),
   password: z.string().min(6, "A senha deve conter no mínimo 6 caracteres")
 });
 
-
-
-//-----------------------  Exportação --------------------------
-
 export default function Index() {
-  const [name, setName] = useState("");
+  const { signIn } = useAuth(); // Pega a função de login do contexto
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  // Definindo o tipo para o TS não reclamar do 'prev'
   const [errors, setErrors] = useState<any>({});
-  const [confirmPassword, setConfirmPassword] = useState("");
 
-  //------------------- Declaração de funções --------------- 
-  function handleLogin() {
-    // 2. Use o nome correto da variável aqui
+  // 2. Função de Login unificada
+  async function handleLogin() {
     const result = loginSchema.safeParse({ email, password });
 
     if (!result.success) {
@@ -44,11 +37,15 @@ export default function Index() {
       setErrors(fieldErrors);
     } else {
       setErrors({});
-      Alert.alert("Bem-vindo", `Login realizado com: ${result.data.email}`);
+      try {
+        // Chama o login do contexto enviando os dados validados
+        await signIn(result.data.email); 
+        // O MainLayout cuidará do redirecionamento automático para /home
+      } catch (error) {
+        Alert.alert("Erro", "Não foi possível realizar o login.");
+      }
     }
   }
-
-  //------------------- Definição de estilos --------------- 
 
   return (
     <KeyboardAvoidingView
@@ -77,6 +74,7 @@ export default function Index() {
               autoCapitalize="none"
               autoCorrect={false}
               placeholder="E-mail"
+              value={email}
               onChangeText={(text) => {
                 setEmail(text);
                 if (errors.email) setErrors((prev: any) => ({ ...prev, email: null }));
@@ -87,6 +85,7 @@ export default function Index() {
             <Input
               placeholder="Senha"
               secureTextEntry
+              value={password}
               onChangeText={(text) => {
                 setPassword(text);
                 if (errors.password) setErrors((prev: any) => ({ ...prev, password: null }));
@@ -110,51 +109,28 @@ export default function Index() {
 }
 
 const styles = StyleSheet.create({
-  scrollContent: {
-    flexGrow: 1,
-  },
+  scrollContent: { flexGrow: 1 },
   container: {
     flex: 1,
-    backgroundColor: "#FfDfDfD",
+    backgroundColor: "#F4F4F5",
     padding: 32,
     justifyContent: 'center',
   },
   illustration: {
     width: "100%",
-    height: 300,
+    height: 250,
     resizeMode: "contain",
   },
-  header: {
-    marginTop: 20,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: "#1A1A1E",
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#71717A",
-    marginTop: 4,
-  },
-  form: {
-    marginTop: 32,
-    gap: 16, // O gap ajuda mas precisamos de margem extra para o erro não quebrar o layout
-  },
-  // 3. Adicione este estilo aqui!
+  header: { marginTop: 20 },
+  title: { fontSize: 32, fontWeight: 'bold', color: "#1A1A1E" },
+  subtitle: { fontSize: 16, color: "#71717A", marginTop: 4 },
+  form: { marginTop: 32, gap: 16 },
   errorText: {
     color: "#EF4444",
     fontSize: 12,
-    marginTop: -12, // Puxa o texto para cima para ficar perto do input
+    marginTop: -12,
     marginBottom: 4,
   },
-  footerText: {
-    textAlign: "center",
-    marginTop: 32,
-    color: "#585860",
-  },
-  footerLink: {
-    color: "#032ad7",
-    fontWeight: "700",
-  },
+  footerText: { textAlign: "center", marginTop: 32, color: "#585860" },
+  footerLink: { color: "#032ad7", fontWeight: "700" },
 });

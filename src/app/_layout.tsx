@@ -8,7 +8,8 @@ function MainLayout() {
   const segments = useSegments();
   const router = useRouter();
 
-  
+  console.log("ESTADO ATUAL:", { user, loading, segment: segments[0] });
+
 useEffect(() => {
     if (loading) return;
 
