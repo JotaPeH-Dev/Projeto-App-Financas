@@ -1,152 +1,68 @@
-import React from 'react'; // Adicione se não tiver
-import { 
-  StyleSheet, 
-  Text, 
-  View, 
-  FlatList, 
-  TouchableOpacity 
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { useAuth } from "@/contexts/AuthContext";
-
-//teste de dados
-const transactions = [
-  { id: "1", label: "Supermercado", value: "R$ 150,00", type: "expense", date: "07/03/2026" },
-  { id: "2", label: "Salário", value: "R$ 3.000,00", type: "income", date: "05/03/2026" },
-  { id: "3", label: "Aluguel", value: "R$ 1.200,00", type: "expense", date: "01/03/2026" },
-];
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { useAuth } from "@/contexts/AuthContext"; // Importe o seu hook
 
 export default function Home() {
-  const { signOut } = useAuth();
-  
-  const totalBalance = transactions.reduce((acc, transaction) => {
-    const value = parseFloat(
-      transaction.value.replace("R$ ", "").replace(".", "").replace(",", ".")
-    );
-
-    if (transaction.type === "income") {
-      return acc + value;
-    } else {
-      return acc - value;
-    }
-  }, 0);
-
-  const formattedBalance = totalBalance.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
+  const { user, signOut } = useAuth(); // Pegamos o usuário e a função de sair
 
   return (
     <View style={styles.container}>
-      {/* HEADER / SALDO */}
       <View style={styles.header}>
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-          <View>
-            <Text style={styles.greeting}>Olá, João</Text>
-            <Text style={styles.balanceValue}>{formattedBalance}</Text>
-          </View>
-
-          {/* BOTÃO LOGOUT (Coloquei dentro do Row do Header para ficar alinhado) */}
-          <TouchableOpacity onPress={signOut} style={{ padding: 8 }}>
-            <Ionicons name="log-out-outline" size={28} color="#fff" />
-          </TouchableOpacity>
+        <View>
+          <Text style={styles.greeting}>Olá,</Text>
+          {/* Exibimos o nome que foi definido lá no signIn do Contexto */}
+          <Text style={styles.userName}>{user?.name || "Usuário"}</Text>
         </View>
+        
+        <TouchableOpacity style={styles.logoutButton} onPress={signOut}>
+          <Text style={styles.logoutText}>Sair</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* 3. LISTA DE TRANSAÇÕES */}
       <View style={styles.content}>
-        <Text style={styles.sectionTitle}>Últimas movimentações</Text>
-
-        <FlatList
-          data={transactions}
-          keyExtractor={(item) => item.id}
-          showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <View style={styles.transactionItem}>
-              <View>
-                <Text style={styles.transactionLabel}>{item.label}</Text>
-                <Text style={styles.transactionDate}>{item.date}</Text>
-              </View>
-              <Text
-                style={[
-                  styles.transactionValue,
-                  { color: item.type === "income" ? "#10B981" : "#EF4444" },
-                ]}
-              >
-                {item.type === "expense" ? `- ${item.value}` : item.value}
-              </Text>
-            </View>
-          )}
-        />
+        <Text style={styles.title}>Minhas Finanças</Text>
+        {/* Aqui entrará sua lista de transações depois */}
       </View>
-    </View> 
-  ); 
-} 
-
-  {/* LISTA DE TRANSAÇÕES */ }
-
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4F4F5',
+    backgroundColor: "#F4F4F5",
+    paddingTop: 60, // Espaço para a barra de status
   },
   header: {
-    backgroundColor: '#032ad7',
-    paddingTop: 64,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 24,
-    paddingBottom: 32,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
+    marginBottom: 32,
   },
   greeting: {
-    color: '#FFFFFF',
     fontSize: 16,
-    opacity: 0.8,
+    color: "#71717A",
   },
-  balanceCard: {
-    marginTop: 24,
+  userName: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#1A1A1E",
   },
-  balanceLabel: {
-    color: '#FFFFFF',
-    fontSize: 14,
+  logoutButton: {
+    padding: 8,
+    backgroundColor: "#FFE4E6",
+    borderRadius: 8,
   },
-  balanceValue: {
-    color: '#FFFFFF',
-    fontSize: 32,
-    fontWeight: 'bold',
+  logoutText: {
+    color: "#E11D48",
+    fontWeight: "600",
   },
   content: {
-    flex: 1,
     paddingHorizontal: 24,
-    marginTop: 32,
   },
-  sectionTitle: {
+  title: {
     fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    color: '#1A1A1E',
-  },
-  transactionItem: {
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  transactionLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1E',
-  },
-  transactionDate: {
-    fontSize: 12,
-    color: '#71717A',
-  },
-  transactionValue: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
+    fontWeight: "600",
+    color: "#1A1A1E",
+  }
 });
