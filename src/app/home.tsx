@@ -146,7 +146,7 @@ export default function Home() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.button, { backgroundColor: '#EF4444', marginTop: 10 }]}
+              style={[styles.button, { backgroundColor: '#979292', marginTop: 10 }]}
               onPress={() => setModalVisible(false)}
             >
               <Text style={styles.buttonText}>Cancelar</Text>
@@ -183,11 +183,11 @@ const styles = StyleSheet.create({
   logoutButton: {
     paddingVertical: 6,
     paddingHorizontal: 12,
-    backgroundColor: "#FFE4E6",
+    backgroundColor: "#3703c7",
     borderRadius: 8,
   },
   logoutText: {
-    color: "#E11D48",
+    color: "#e4e3e7",
     fontWeight: "600",
   },
   content: {
@@ -272,11 +272,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   typeButtonSelected: {
-    backgroundColor: "#E11D48",
-    borderColor: "#E11D48",
+    backgroundColor: "#e4e4e4",
+    borderColor: "#0e21cc",
   },
   typeButtonText: {
-    color: "#1A1A1E",
+    color: "#0d0d9b",
     fontWeight: "600",
   },
   button: {
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   buttonText: {
-    color: "#FFFFFF",
+    color: "#292323",
     fontWeight: "600",
     fontSize: 16,
   },
