@@ -30,23 +30,24 @@ export default function Index() {
 
   // 2. Função de Login unificada
   async function handleLogin() {
-    const result = loginSchema.safeParse({ email, password });
+  console.log("Botão clicado!"); // LOG 1
+  const result = loginSchema.safeParse({ email, password });
 
-    if (!result.success) {
-      const fieldErrors = result.error.flatten().fieldErrors;
-      setErrors(fieldErrors);
-    } else {
-      setErrors({});
-      try {
-        // Chama o login do contexto enviando os dados validados
-        await signIn(result.data.email); 
-        // O MainLayout cuidará do redirecionamento automático para /home
-      } catch (error) {
-        Alert.alert("Erro", "Não foi possível realizar o login.");
-      }
+  if (!result.success) {
+    console.log("Erro de validação Zod:", result.error.flatten().fieldErrors); // LOG 2
+    const fieldErrors = result.error.flatten().fieldErrors;
+    setErrors(fieldErrors);
+  } else {
+    console.log("Validação OK! Chamando signIn..."); // LOG 3
+    setErrors({});
+    try {
+      await signIn(result.data.email, result.data.password);
+      console.log("Função signIn finalizada!"); // LOG 4
+    } catch (error) {
+      Alert.alert("Erro", "Não foi possível realizar o login.");
     }
   }
-
+}
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}

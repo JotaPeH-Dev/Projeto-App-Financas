@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { createContext, useContext, useEffect, useState } from "react";
 
 export const AuthContext = createContext({} as any);
 
@@ -9,26 +9,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     async function loadStorageData() {
-      const storageUser = await AsyncStorage.getItem("@AppFinancas:user");
-      if (storageUser) {
-        setUser(JSON.parse(storageUser));
+      try {
+        const storageUser = await AsyncStorage.getItem("@AppFinancas:user");
+        if (storageUser) {
+          setUser(JSON.parse(storageUser));
+        }
+      } catch (e) {
+        console.error("Erro ao carregar storage", e);
+      } finally {
+        // ESSENCIAL: Garante que o loading pare mesmo se houver erro ou storage vazio
+        setLoading(false);
       }
-      setLoading(false);
     }
     loadStorageData();
   }, []);
 
-  async function signIn(email: string) {
-    // Simulando um login (aqui você faria a chamada para uma API)
-    const data = { id: '1', name: 'João Pedro', email };
+  async function signIn(email: string, password: string) {
+    try {
+      setLoading(true); // Opcional: ativa o loading durante o processo de login
+
+      // Simulando um login (Aqui você faria a chamada para sua API no futuro)
+      const data = { id: '1', name: 'João Pedro', email };
+
+      // Salva no storage primeiro para garantir a persistência
+      await AsyncStorage.setItem("@AppFinancas:user", JSON.stringify(data));
+     setUser(data);
+
+      console.log("Usuário definido no Contexto!:");
+    } catch (error) {
+      console.error("Erro ao fazer login:", error);
     
-    setUser(data);
-    await AsyncStorage.setItem("@AppFinancas:user", JSON.stringify(data));
+      // Repassa o erro para o handleLogin tratar com Alert
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function signOut() {
-    await AsyncStorage.removeItem("@AppFinancas:user");
-    setUser(null);
+    try {
+      await AsyncStorage.removeItem("@AppFinancas:user");
+      setUser(null);
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+    }
   }
 
   return (

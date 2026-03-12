@@ -1,7 +1,14 @@
 import { StyleSheet, TextInput, TextInputProps } from "react-native";
 
-export function Input(props: TextInputProps) {
-  return <TextInput style={styles.input} placeholder={props.placeholder} />
+// Usamos o rest para pegar todas as propriedades (value, onChangeText, keyboardType, etc)
+export function Input({ style, ...rest }: TextInputProps) {
+  return (
+    <TextInput 
+      style={[styles.input, style]} 
+      placeholderTextColor="#71717A" // Dica: melhora a visibilidade do placeholder
+      {...rest} // <-- Isso aqui é o segredo! Repassa tudo automaticamente.
+    />
+  );
 }
 
 const styles = StyleSheet.create({
@@ -12,6 +19,7 @@ const styles = StyleSheet.create({
     borderColor: "#ccc",
     borderRadius: 8,
     fontSize: 16,
-    paddingLeft: 16,
+    paddingHorizontal: 16, // paddingHorizontal é melhor que paddingLeft para centralizar
+    backgroundColor: "#fff", // Fica melhor visualmente no fundo cinza
   },
 });

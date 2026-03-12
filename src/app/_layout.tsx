@@ -1,7 +1,9 @@
 import { Stack } from "expo-router";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
-import { useRouter, useSegments } from "expo-router";
+import { useRouter, Slot, useSegments } from "expo-router";
+import { View, Text } from "react-native";
+
 
 function MainLayout() {
   const { user, loading } = useAuth();
@@ -11,40 +13,51 @@ function MainLayout() {
   console.log("ESTADO ATUAL:", { user, loading, segment: segments[0] });
 
 useEffect(() => {
-    if (loading) return;
+  if (loading) return;
 
-    // Forçamos o tipo para string para o TS parar de reclamar das rotas automáticas
-    const currentSegment = segments[0] as string | undefined;
+  // Pegamos o primeiro segmento e forçamos como 'any' para evitar o erro de overlap
+  const currentSegment = segments[0] as any;
 
-    // Verificamos se o usuário está em telas públicas (Login ou Cadastro)
-    // No Expo Router, a raiz "/" costuma vir como undefined ou "index"
-    const isAtRoot = !currentSegment || currentSegment === "index" || currentSegment === "(auth)";
-    const isAtSignup = currentSegment === "signup";
+  // No Expo Router, a tela 'index.tsx' na raiz costuma resultar em um segmento undefined ou vazio
+  const isAtLoginPage = !currentSegment || currentSegment === "index" || currentSegment === "";
+  const isAtSignupPage = currentSegment === "signup";
 
-    if (!user && !isAtRoot && !isAtSignup) {
-      // Se não tem usuário e NÃO está no login/signup -> Vai para o Login
-      router.replace("/");
-    } 
-    else if (user && (isAtRoot || isAtSignup)) {
-      // Se TEM usuário e tenta entrar no login/signup -> Vai para a Home
-      router.replace("/home");
-    }
-  }, [user, loading, segments]);
+  console.log("DEBUG - User:", !!user, "Segmento:", currentSegment);
+
+  if (!user && !isAtLoginPage && !isAtSignupPage) {
+    // Se não tem user e não está no login/signup -> Vai para a raiz (Login)
+    router.replace("/");
+  } 
+  else if (user && (isAtLoginPage || isAtSignupPage)) {
+    // Se tem user e tenta entrar no login/signup -> Vai para a Home
+    // IMPORTANTE: Verifique se o arquivo app/home.tsx existe!
+    router.replace("/home");
+  }
+}, [user, loading, segments]);
 
 // Enquanto carrega o login, mostramos nada (ou um componente de loading/spinner)
-if (loading) return null;
+if (loading) {
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <Text>Carregando configurações...</Text> 
+    </View>
+  );
+}
 
 return (
-  <Stack screenOptions={{ headerShown: false }} >
+  <Stack screenOptions={{ headerShown: false }}>
     <Stack.Screen name="index" />
     <Stack.Screen name="signup" />
-    <Stack.Screen name="home" />
-    {/* Se você tiver uma pasta (tabs), mude o nome para "(tabs)" */}
-    </Stack>
+    <Stack.Screen name="home" /> 
+  </Stack>
 );
 }
 
 export default function RootLayout() {
+  const { user, loading } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+
   return (
     <AuthProvider>
       <MainLayout />
