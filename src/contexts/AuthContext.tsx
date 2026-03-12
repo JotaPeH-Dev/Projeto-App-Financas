@@ -33,12 +33,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Salva no storage primeiro para garantir a persistência
       await AsyncStorage.setItem("@AppFinancas:user", JSON.stringify(data));
-     setUser(data);
+      setUser(data);
 
       console.log("Usuário definido no Contexto!:");
     } catch (error) {
       console.error("Erro ao fazer login:", error);
-    
+
       // Repassa o erro para o handleLogin tratar com Alert
     } finally {
       setLoading(false);

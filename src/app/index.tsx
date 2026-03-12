@@ -13,7 +13,7 @@ import {
   View
 } from "react-native";
 import { z } from "zod";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "src/contexts/AuthContext";
 
 // 1. Schema de validação
 const loginSchema = z.object({
@@ -60,7 +60,7 @@ export default function Index() {
       >
         <View style={styles.container}>
           <Image
-            source={require("@/app/assets/9518505.jpg")}
+            source={require("src/app/assets/9518505.jpg")}
             style={styles.illustration}
           />
 

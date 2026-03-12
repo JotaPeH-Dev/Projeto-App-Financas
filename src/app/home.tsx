@@ -1,15 +1,25 @@
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { useAuth } from "@/contexts/AuthContext"; // Importe o seu hook
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
+import { useAuth } from "src/contexts/AuthContext";
+import BalanceCard from "@/Components/BalanceCard";
+import TransactionItem from "@/Components/TransactionsItem";
+
+const MOCK_TRANSACTIONS = [
+  {id: 1, label: "Salário", value: 5000, type: "income", date: "01/09/2024"},
+  {id: 2, label: "Aluguel", value: 1500, type: "expense", date: "05/09/2024"},
+  {id: 3, label: "Mercado", value: 2000, type: "expense", date: "10/09/2024"}
+] as const; 
 
 export default function Home() {
-  const { user, signOut } = useAuth(); // Pegamos o usuário e a função de sair
+  const { user, signOut } = useAuth();
 
   return (
-    <View style={styles.container}>
+    // ScrollView é bom para garantir que telas com muitos dados não cortem em celulares menores
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      
+      {/* SEÇÃO 1: HEADER (Saudação + Botão Sair) */}
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>Olá,</Text>
-          {/* Exibimos o nome que foi definido lá no signIn do Contexto */}
           <Text style={styles.userName}>{user?.name || "Usuário"}</Text>
         </View>
         
@@ -18,11 +28,36 @@ export default function Home() {
         </TouchableOpacity>
       </View>
 
+      {/* SEÇÃO 2: CARD DE SALDO */}
       <View style={styles.content}>
-        <Text style={styles.title}>Minhas Finanças</Text>
-        {/* Aqui entrará sua lista de transações depois */}
+        <Text style={styles.title}>Últimas Transações</Text>
+        {MOCK_TRANSACTIONS.map((item) => (
+        <TransactionItem
+          key={item.id}
+          label={item.label}
+          value={item.value}
+          type={item.type}
+          date={item.date}
+        />
+      ))}  
+        <BalanceCard 
+          saldo={5000} 
+          receitas={8000} 
+          despesas={3000} 
+        />
       </View>
-    </View>
+
+      {/* SEÇÃO 3: TRANSAÇÕES */}
+      <View style={styles.content}>
+        <View style={styles.sectionTitleRow}>
+          <Text style={styles.title}>Últimas Transações</Text>
+        </View>
+        
+        {/* Aqui entraremos com a FlatList ou Map no próximo passo */}
+        <Text style={styles.emptyText}>Nenhuma transação encontrada.</Text>
+      </View>
+
+    </ScrollView>
   );
 }
 
@@ -30,14 +65,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F4F4F5",
-    paddingTop: 60, // Espaço para a barra de status
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 24,
-    marginBottom: 32,
+    paddingTop: 60, // Ajuste para não bater no entalhe (notch) do celular
+    marginBottom: 20,
   },
   greeting: {
     fontSize: 16,
@@ -49,7 +84,8 @@ const styles = StyleSheet.create({
     color: "#1A1A1E",
   },
   logoutButton: {
-    padding: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
     backgroundColor: "#FFE4E6",
     borderRadius: 8,
   },
@@ -59,10 +95,20 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 24,
+    marginBottom: 24,
+  },
+  sectionTitleRow: {
+    marginBottom: 16,
   },
   title: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: "700",
     color: "#1A1A1E",
+  },
+  emptyText: {
+    textAlign: "center",
+    color: "#A1A1AA",
+    marginTop: 20,
+    fontStyle: "italic",
   }
 });
