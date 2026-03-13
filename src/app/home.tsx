@@ -40,9 +40,9 @@ export default function Home() {
   useEffect(() => {
     async function loadTransactions() {
       try {
-        const storedData = await AsyncStorage.getItem(DATA_KEY);
-        if (storedData) {
-          setTransactions(JSON.parse(storedData));
+        const value = await AsyncStorage.getItem(DATA_KEY);
+        if (value !== null) {
+          setTransactions(JSON.parse(value));
         }
       } catch (error) {
         console.error("Erro ao carregar:", error);
@@ -55,18 +55,26 @@ export default function Home() {
 
   // 2. SALVAR DADOS SEMPRE QUE A LISTA MUDAR
   useEffect(() => {
-    async function saveTransactions() {
-      // SÓ salva se não estiver mais carregando (segurança)
-      if (!loading) {
-        try {
-          await AsyncStorage.setItem(DATA_KEY, JSON.stringify(transactions));
-        } catch (error) {
-          console.error("Erro ao salvar:", error);
-        }
+  const saveTransactions = async () => {
+    // Adicione esse log para ver EXATAMENTE quando o salvamento é tentado
+    console.log("Tentando persistir no AsyncStorage...", { 
+      loading, 
+      count: transactions.length 
+    });
+
+    if (!loading) {
+      try {
+        const jsonValue = JSON.stringify(transactions);
+        await AsyncStorage.setItem(DATA_KEY, jsonValue);
+        console.log("✅ Salvo com sucesso!");
+      } catch (error) {
+        console.error("❌ Erro ao salvar:", error);
       }
     }
-    saveTransactions();
-  }, [transactions, loading]);
+  };
+
+  saveTransactions();
+}, [transactions, loading]);
 
   const addTransaction = () => {
     if (!newLabel || !newValue || !newDate) {
