@@ -1,11 +1,9 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import BalanceCard from "@/Components/BalanceCard";
 import TransactionsItem from "@/Components/TransactionsItem";
-import { useState } from "react";
-import { Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, ViewStyle } from "react-native";
 import { useAuth } from "src/contexts/AuthContext";
 
 const DATA_KEY = "@myfinances:transactions";
@@ -23,7 +21,7 @@ type Transaction = {
 export default function Home() {
   const { user, signOut } = useAuth();
   const [modalVisible, setModalVisible] = useState(false);
-  const [transactions, setTransactions] = useState(MOCK_TRANSACTIONS);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [newLabel, setNewLabel] = useState("");
   const [newValue, setNewValue] = useState("");
   const [newType, setNewType] = useState("income");
@@ -39,7 +37,7 @@ export default function Home() {
       Alert.alert("Erro", "Valor deve ser um número.");
       return;
     }
-    const newId = transactions.length + 1;
+    const newId = (transactions.length + 1).toString();
     const newTransactions = { id: newId, label: newLabel, value, type: newType as "income" | "expense", date: newDate };
     setTransactions([...transactions, newTransactions]);
     setNewLabel("");
@@ -48,6 +46,39 @@ export default function Home() {
     setNewDate("");
     setModalVisible(false);
   };
+
+  // Função para limpar todas as transações
+  const handleClearAll = () => {
+    Alert.alert(
+      "Limpar Tudo",
+      "Tem certeza que deseja remover todas as transações?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Sim", style: "destructive", onPress: () => setTransactions([]) }
+      ]
+    );
+  };
+
+  // Função para deletar uma transação pelo id
+  const handleDeleteTransaction = (id: string) => {
+    Alert.alert(
+      "Excluir Transação",
+      "Tem certeza que deseja excluir esta transação?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Excluir", style: "destructive", onPress: () => setTransactions(transactions.filter(t => t.id !== id)) }
+      ]
+    );
+  };
+
+  // Calcula receitas, despesas e saldo
+  const totalIncome = transactions
+    .filter((t) => t.type === "income")
+    .reduce((sum: number, t) => sum + t.value, 0);
+  const totalExpense = transactions
+    .filter((t) => t.type === "expense")
+    .reduce((sum: number, t) => sum + t.value, 0);
+  const balance = totalIncome - totalExpense;
 
   return (
     <View style={{ flex: 1 }}>
@@ -64,18 +95,18 @@ export default function Home() {
         </View>
 
         <View style={styles.content}>
-        <View style={styles.content}>
-  {/* ANTES ESTAVA <div>, MUDE PARA <View> */}
-  <View style={styles.sectionTitleRow}> 
-    <Text style={styles.title}>Últimas Transações</Text>
-    {transactions.length > 0 && (
-      <TouchableOpacity onPress={handleClearAll}>
-        <Text style={styles.ClearButtonText}>Limpar Tudo</Text>
-      </TouchableOpacity>
-    )}
-  </View>
-  {/* ... restante do código */}
-</View>
+          <View style={styles.content}>
+            {/* ANTES ESTAVA <div>, MUDE PARA <View> */}
+            <View style={styles.sectionTitleRow}>
+              <Text style={styles.title}>Últimas Transações</Text>
+              {transactions.length > 0 && (
+                <TouchableOpacity onPress={handleClearAll}>
+                  <Text style={styles.ClearButtonText}>Limpar Tudo</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            {/* ... restante do código */}
+          </View>
 
           {transactions.length > 0 ? (
             transactions.map((item) => (
@@ -174,24 +205,24 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   fab: {
-  position: "absolute",
-  bottom: 30,
-  right: 20,
-  width: 64,
-  height: 64,
-  borderRadius: 32,
-  backgroundColor: "#311de1",
-  justifyContent: "center",
-  alignItems: "center",
-  elevation: 10, // Garante que fique acima de tudo no Android
-  zIndex: 99,    // Garante que fique acima de tudo no iOS
-},
-fabText: {
-  fontSize: 34,
-  color: "#FFFFFF",
-  fontWeight: "300", 
-  transform: [{ translateY: -2 }], // Ajuste fino para o centro
-},
+    position: "absolute",
+    bottom: 30,
+    right: 20,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#311de1",
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 10, // Garante que fique acima de tudo no Android
+    zIndex: 99,    // Garante que fique acima de tudo no iOS
+  },
+  fabText: {
+    fontSize: 34,
+    color: "#FFFFFF",
+    fontWeight: "300",
+    transform: [{ translateY: -2 }], // Ajuste fino para o centro
+  },
   deleteIconButton: {
     padding: 10,
     marginLeft: 8,
