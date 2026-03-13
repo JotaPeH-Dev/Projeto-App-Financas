@@ -194,12 +194,13 @@ const handleClearAll = () => {
                     date={item.date}
                   />
                 </View>
-                <TouchableOpacity
-                  onPress={() => handleDeleteTransaction(item.id)}
-                  style={styles.deleteIconButton}
-                >
-                  <Ionicons name="trash-outline" size={22} color="#EF4444" />
-                </TouchableOpacity>
+                // ... dentro do seu map de transactions
+<TouchableOpacity
+  onPress={() => handleDeleteTransaction(item.id)} // Adicione a arrow function () => aqui!
+  style={styles.deleteIconButton}
+>
+  <Ionicons name="trash-outline" size={22} color="#EF4444" />
+</TouchableOpacity>
               </View>
             ))
           ) : (
