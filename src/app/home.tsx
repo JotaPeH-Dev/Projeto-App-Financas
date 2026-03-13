@@ -1,83 +1,171 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEffect, useState } from "react";
+import { Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, ViewStyle } from "react-native";
+
 import BalanceCard from "@/Components/BalanceCard";
 import TransactionsItem from "@/Components/TransactionsItem";
-import { useState } from "react";
-import { Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, ViewStyle } from "react-native";
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from "src/contexts/AuthContext";
 
-const MOCK_TRANSACTIONS = [
-  { id: 1, label: "Salário", value: 5000, type: "income" as const, date: "01/09/2024" },
-  { id: 2, label: "Aluguel", value: 1500, type: "expense" as const, date: "05/09/2024" },
-  { id: 3, label: "Mercado", value: 2000, type: "expense" as const, date: "10/09/2024" }
-];
+const DATA_KEY = "@myfinances:transactions";
+
+type Transaction = {
+  id: string;
+  label: string;
+  value: number;
+  type: "income" | "expense";
+  date: string;
+};
 
 export default function Home() {
   const { user, signOut } = useAuth();
   const [modalVisible, setModalVisible] = useState(false);
-  const [transactions, setTransactions] = useState(MOCK_TRANSACTIONS);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+
   const [newLabel, setNewLabel] = useState("");
   const [newValue, setNewValue] = useState("");
-  const [newType, setNewType] = useState("income");
+  const [newType, setNewType] = useState<"income" | "expense">("income");
   const [newDate, setNewDate] = useState("");
 
-  const addTransaction = () => {
+  useEffect(() => {
+    async function loadTransactions() {
+      const response = await AsyncStorage.getItem(DATA_KEY);
+      const storageData = response ? JSON.parse(response) : [];
+      setTransactions(storageData);
+    }
+    loadTransactions();
+  }, []);
+
+  const addTransaction = async () => {
     if (!newLabel || !newValue || !newDate) {
       Alert.alert("Erro", "Preencha todos os campos.");
       return;
     }
-    const value = parseFloat(newValue);
+
+    const value = parseFloat(newValue.replace(',', '.'));
     if (isNaN(value)) {
-      Alert.alert("Erro", "Valor deve ser um número.");
+      Alert.alert("Erro", "Valor inválido.");
       return;
     }
-    const newId = transactions.length + 1;
-    const newTransactions = { id: newId, label: newLabel, value, type: newType as "income" | "expense", date: newDate };
-    setTransactions([...transactions, newTransactions]);
-    setNewLabel("");
-    setNewValue("");
-    setNewType("income");
-    setNewDate("");
-    setModalVisible(false);
+
+    const newTransaction: Transaction = {
+      id: String(new Date().getTime()),
+      label: newLabel,
+      value,
+      type: newType,
+      date: newDate
+    };
+
+    try {
+      const updatedTransactions = [...transactions, newTransaction];
+      setTransactions(updatedTransactions);
+      await AsyncStorage.setItem(DATA_KEY, JSON.stringify(updatedTransactions));
+
+      setNewLabel("");
+      setNewValue("");
+      setNewType("income");
+      setNewDate("");
+      setModalVisible(false);
+    } catch (error) {
+      Alert.alert("Erro", "Não foi possível salvar.");
+    }
   };
+
+  // 1. FUNÇÃO DELETAR ÚNICO ITEM
+  const handleDeleteTransaction = async (id: string) => {
+    Alert.alert("Excluir", "Deseja remover este item?", [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Excluir",
+        style: "destructive",
+        onPress: async () => {
+          const updated = transactions.filter(item => item.id !== id);
+          setTransactions(updated);
+          await AsyncStorage.setItem(DATA_KEY, JSON.stringify(updated));
+        }
+      }
+    ]);
+  };
+
+  // 2. FUNÇÃO LIMPAR TUDO
+  const handleClearAll = async () => {
+    Alert.alert("Limpar tudo", "Remover todas as transações?", [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Apagar",
+        style: "destructive",
+        onPress: async () => {
+          await AsyncStorage.removeItem(DATA_KEY);
+          setTransactions([]);
+        }
+      }
+    ]);
+  };
+
+  const totalIncome = transactions
+    .filter(item => item.type === "income")
+    .reduce((acc, item) => acc + item.value, 0);
+
+  const totalExpense = transactions
+    .filter(item => item.type === "expense")
+    .reduce((acc, item) => acc + item.value, 0);
+
+  const balance = totalIncome - totalExpense;
+
+  // ... (mantenha os imports e tipos iguais ao início do seu arquivo)
 
   return (
     <View style={{ flex: 1 }}>
       <ScrollView style={styles.container}>
-        {/* SEÇÃO 1: HEADER */}
         <View style={styles.header}>
           <View>
             <Text style={styles.greeting}>Olá,</Text>
             <Text style={styles.userName}>{user?.name || "Usuário"}</Text>
           </View>
-
           <TouchableOpacity style={styles.logoutButton} onPress={signOut}>
             <Text style={styles.logoutText}>Sair</Text>
           </TouchableOpacity>
         </View>
 
-        {/* SEÇÃO 2: CARD DE SALDO */}
         <View style={styles.content}>
-          <BalanceCard
-            saldo={5000}
-            receitas={8000}
-            despesas={3000}
-          />
+          <BalanceCard saldo={balance} receitas={totalIncome} despesas={totalExpense} />
         </View>
 
-        {/* SEÇÃO 3: TRANSAÇÕES */}
         <View style={styles.content}>
           <View style={styles.sectionTitleRow}>
             <Text style={styles.title}>Últimas Transações</Text>
+            {transactions.length > 0 && (
+              <TouchableOpacity onPress={handleClearAll}>
+                <Text style={styles.ClearButtonText}>Limpar Tudo</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {transactions.length > 0 ? (
             transactions.map((item) => (
-              <TransactionsItem
-                key={item.id}
-                label={item.label}
-                value={item.value}
-                type={item.type}
-                date={item.date}
-              />
+              <View key={item.id} style={styles.transactionWrapper}>
+                <View style={{ flex: 1 }}>
+                  <TransactionsItem
+                    label={item.label}
+                    value={item.value}
+                    type={item.type}
+                    date={item.date}
+                  />
+                </View>
+                <TouchableOpacity
+                  onPress={() => handleDeleteTransaction(item.id)}
+                  style={styles.deleteIconButton}
+                >
+                  <Ionicons
+                    name={item.type === 'income' ? "arrow-up-circle" : "arrow-down-circle"}
+                    size={24}
+                    color={item.type === 'income' ? "#10B981" : "#a8dca6"}
+                  />
+                  <Ionicons name="trash-outline" size={20} color="#EF4444" />
+
+
+                </TouchableOpacity>
+              </View>
             ))
           ) : (
             <Text style={styles.emptyText}>Nenhuma transação encontrada.</Text>
@@ -85,15 +173,12 @@ export default function Home() {
         </View>
       </ScrollView>
 
-      {/* Botão Flutuante "+" */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => setModalVisible(true)}
-      >
+      {/* BOTÃO FLUTUANTE (FAB) */}
+      <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
 
-      {/* Modal de Cadastro */}
+      {/* MODAL DE ADIÇÃO (O que estava faltando) */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -110,6 +195,7 @@ export default function Home() {
               value={newLabel}
               onChangeText={setNewLabel}
             />
+
             <TextInput
               style={styles.input}
               placeholder="Valor"
@@ -117,6 +203,7 @@ export default function Home() {
               onChangeText={setNewValue}
               keyboardType="numeric"
             />
+
             <View style={styles.typeContainer}>
               <TouchableOpacity
                 style={[styles.typeButton, newType === "income" && styles.typeButtonSelected]}
@@ -124,6 +211,7 @@ export default function Home() {
               >
                 <Text style={styles.typeButtonText}>Receita</Text>
               </TouchableOpacity>
+
               <TouchableOpacity
                 style={[styles.typeButton, newType === "expense" && styles.typeButtonSelected]}
                 onPress={() => setNewType("expense")}
@@ -131,6 +219,7 @@ export default function Home() {
                 <Text style={styles.typeButtonText}>Despesa</Text>
               </TouchableOpacity>
             </View>
+
             <TextInput
               style={styles.input}
               placeholder="Data (DD/MM/YYYY)"
@@ -142,11 +231,11 @@ export default function Home() {
               style={[styles.button, { backgroundColor: '#10B981', marginTop: 20 }]}
               onPress={addTransaction}
             >
-              <Text style={styles.buttonText}>Adicionar</Text>
+              <Text style={[styles.buttonText, { color: '#FFF' }]}>Adicionar</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.button, { backgroundColor: '#979292', marginTop: 10 }]}
+              style={[styles.button, { backgroundColor: '#e2e2e2', marginTop: 10 }]}
               onPress={() => setModalVisible(false)}
             >
               <Text style={styles.buttonText}>Cancelar</Text>
@@ -157,6 +246,7 @@ export default function Home() {
     </View>
   );
 }
+/* Removed duplicate styles declaration */
 
 const styles = StyleSheet.create({
   container: {
@@ -195,6 +285,9 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   sectionTitleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 16,
   },
   title: {
@@ -207,6 +300,19 @@ const styles = StyleSheet.create({
     color: "#A1A1AA",
     marginTop: 20,
     fontStyle: "italic",
+  },
+  transactionWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    padding: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   fab: {
     position: "absolute",
@@ -230,6 +336,15 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     transform: [{ translateY: -4 }], // Ajuste visual para centralizar o "+" no botão
   },
+  deleteIconButton: {
+    padding: 10,
+    marginLeft: 8,
+    backgroundColor: "#FEE2E2", // Vermelho clarinho
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
   // Estilos que faltavam para o Modal
   modalOverlay: {
     flex: 1,
@@ -290,4 +405,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 16,
   },
+  ClearButtonText: {
+    color: "#EF4444",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+
+
 });
