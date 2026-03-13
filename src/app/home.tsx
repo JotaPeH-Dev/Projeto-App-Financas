@@ -114,21 +114,25 @@ export default function Home() {
   // ... (return JSX igual)
 
   const handleDeleteTransaction = (id: string) => {
+  console.log("ID recebido para deletar:", id);
+  console.log("IDs existentes na lista:", transactions.map(t => t.id));
+
   Alert.alert(
     "Excluir Transação",
-    "Tem certeza que deseja excluir esta transação?",
+    "Tem certeza?",
     [
-      { text: "Cancelar", style: "cancel" },
+      { text: "Cancelar" },
       { 
         text: "Excluir", 
-        style: "destructive", 
-        // Use o callback (prev) para garantir a versão mais recente da lista
-        onPress: () => setTransactions(prev => prev.filter(t => t.id !== id)) 
+        onPress: () => {
+          const novaLista = transactions.filter(t => t.id !== id);
+          console.log("Tamanho antes:", transactions.length, "Tamanho depois:", novaLista.length);
+          setTransactions(novaLista);
+        } 
       }
     ]
   );
 };
-
 const handleClearAll = () => {
   Alert.alert(
     "Limpar Tudo",
