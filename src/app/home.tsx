@@ -270,54 +270,55 @@ export default function Home() {
 
 const styles = StyleSheet.create({
   container: {
-     flex: 1, 
+  flex: 1, 
     backgroundColor: "#F4F4F5" 
   } as ViewStyle,
   header: {
-     flexDirection: "row",
-     justifyContent: "space-between",
-      alignItems: "center",
-       paddingHorizontal: 24,
-        paddingTop: 60,
-         marginBottom: 20 },
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingTop: 60,
+    marginBottom: 20 
+  },
   greeting: {
-     fontSize: 16,
-     color: "#71717A" 
+    fontSize: 16,
+    color: "#71717A" 
     },
   userName: {
-     fontSize: 22,
-     fontWeight: "bold",
+    fontSize: 22,
+    fontWeight: "bold",
       color: "#1A1A1E" 
     },
   logoutButton: {
-     paddingVertical: 6,
-     paddingHorizontal: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 24,
       backgroundColor: "#3703c7", borderRadius: 8 
     },
   logoutText: {
-     color: "#e4e3e7",
-     fontWeight: "600" 
+    color: "#e4e3e7",
+    fontWeight: "600" 
     },
   content: {
-     paddingHorizontal: 24,
-     marginBottom: 24 
+  paddingHorizontal: 24,
+  marginBottom: 24 
     },
   sectionTitleRow: {
-     flexDirection: "row",
-     justifyContent: "space-between",
-      alignItems: "center",
-       marginBottom: 16 
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16 
       },
   title: {
-     fontSize: 18,
-     fontWeight: "700",
+    fontSize: 18,
+    fontWeight: "700",
       color: "#1d1d20" 
     },
   emptyText: {
-     textAlign: "center",
-     color: "#A1A1AA",
-      marginTop: 20,
-       fontStyle: "italic" 
+    textAlign: "center",
+    color: "#A1A1AA",
+    marginTop: 20,
+    fontStyle: "italic" 
       },
   transactionWrapper: {
     flexDirection: "row",
@@ -333,21 +334,24 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   fab: {
-     position: "absolute",
-     bottom: 30,
-      right: 30,
-       width: 60,
-        height: 60,
-         borderRadius: 30,
-          backgroundColor: "#311de1",
-           justifyContent: "center",
-            alignItems: "center",
-             elevation: 5 
+    position: "absolute",
+  bottom: 30,
+  right: 20,
+  width: 60,
+  height: 60,
+  borderRadius: 30,
+  backgroundColor: "#311de1",
+  justifyContent: "center",
+  alignItems: "center",
+  elevation: 15,
             },
   fabText: {
-     fontSize: 32,
-     color: "#FFFFFF",
-      fontWeight: "bold" 
+    fontSize: 38,
+    color: "#FFFFFF",
+    fontWeight: "bold", 
+    justifyContent: "center",
+    alignItems: "center",
+    paddingBottom: 10
     },
   deleteIconButton: {
     padding: 10,
@@ -357,63 +361,67 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  modalOverlay: { flex: 1,
-     backgroundColor: "rgba(0,0,0,0.5)",
-      justifyContent: "flex-end" 
+    modalOverlay: { 
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end" 
     },
-  modalContent: { backgroundColor: "#FFFFFF",
-     borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
-       padding: 24,
-        height: "75%" 
+    modalContent: { 
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    height: "75%" 
       },
-  modalTitle: { fontSize: 20,
-     fontWeight: "bold",
-      color: "#1A1A1E",
-       marginBottom: 20 
+    modalTitle: { 
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#1A1A1E",
+    marginBottom: 20 
       },
-  input: { borderWidth: 1,
-     borderColor: "#D1D5DB",
-      borderRadius: 8,
-       padding: 12,
-        marginBottom: 16,
-         fontSize: 16 
+  input: { 
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    fontSize: 16 
         },
   typeContainer: { flexDirection: "row",
-     justifyContent: "space-between",
-      marginBottom: 16 
+    justifyContent: "space-between",
+    marginBottom: 16 
     },
   typeButton: {
-     flex: 1,
-      padding: 12,
-       borderRadius: 8,
-        borderWidth: 1,
-         borderColor: "#D1D5DB",
-          alignItems: "center",
-           marginHorizontal: 4 
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    alignItems: "center",
+    marginHorizontal: 4 
           },
   typeButtonSelected: {
-     backgroundColor: "#651616",
-      borderColor: "#0e21cc" 
+  backgroundColor: "#6a6381",
+      borderColor: "#8d8d90" 
     },
   typeButtonText: {
-     color: "#0d0d9b",
-      fontWeight: "600" 
+    color: "#0d0d9b",
+    fontWeight: "600" 
     },
   button: {
-     height: 50,
-     borderRadius: 8,
+    height: 50,
+    borderRadius: 8,
       justifyContent: "center",
-       alignItems: "center" 
+    alignItems: "center" 
       },
   buttonText: {
-     color: "#292323",
-      fontWeight: "600",
-       fontSize: 16 
+    color: "#303030",
+    fontWeight: "600",
+    fontSize: 16 
       },
   ClearButtonText: { 
     color: "#EF4444",
-     fontWeight: "600",
-      fontSize: 14 
+    fontWeight: "600",
+    fontSize: 14 
     },
 });
