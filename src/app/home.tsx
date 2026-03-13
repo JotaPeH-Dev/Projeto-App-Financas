@@ -1,23 +1,24 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useState } from "react";
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from "react-native";
+
 import BalanceCard from "@/Components/BalanceCard";
 import TransactionsItem from "@/Components/TransactionsItem";
 import { useState } from "react";
-import { Alert, 
-  Modal, 
-  ScrollView, 
-  StyleSheet, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  View, 
-  ViewStyle } from "react-native";
+import { Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, ViewStyle } from "react-native";
 import { useAuth } from "src/contexts/AuthContext";
-import { set } from "zod";
 
-const MOCK_TRANSACTIONS = [
-  { id: 1, label: "Salário", value: 5000, type: "income" as const, date: "01/09/2024" },
-  { id: 2, label: "Aluguel", value: 1500, type: "expense" as const, date: "05/09/2024" },
-  { id: 3, label: "Mercado", value: 2000, type: "expense" as const, date: "10/09/2024" }
-];
+const DATA_KEY = "@myfinances:transactions";
+
+type Transaction = {
+  id: string;
+  label: string;
+  value: number;
+  type: "income" | "expense";
+  date: string;
+};
+
+// ... (mantenha os imports e tipos iguais)
 
 export default function Home() {
   const { user, signOut } = useAuth();
@@ -46,65 +47,54 @@ export default function Home() {
     setNewType("income");
     setNewDate("");
     setModalVisible(false);
-    const deleteTransaction = (id: number) => {
-    const updatedTransactions = transactions.filter(item => item.id !== id);
-    setTransactions(updatedTransactions);
-  
-    const confirmDelete = (id: number) => {
-      Alert.alert(
-        "Excluir Transação",
-        "Tem certeza que deseja excluir esta transação?",
-        [
-          { text: "Cancelar", style: "cancel" },
-          { text: "Excluir", 
-            onPress: () => deleteTransaction(id),
-            style: "destructive"
-          }
-        ]
-      );
-    }
-  };
   };
 
   return (
     <View style={{ flex: 1 }}>
       <ScrollView style={styles.container}>
-        {/* SEÇÃO 1: HEADER */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>Olá,</Text>
-            <Text style={styles.userName}>{user?.name || "Usuário"}</Text>
-          </View>
+        {/* ... Header ... */}
 
-          <TouchableOpacity style={styles.logoutButton} onPress={signOut}>
-            <Text style={styles.logoutText}>Sair</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* SEÇÃO 2: CARD DE SALDO */}
         <View style={styles.content}>
+          {/* AQUI ESTAVA O PROBLEMA: Precisamos passar os valores formatados */}
           <BalanceCard
-            saldo={5000}
-            receitas={8000}
-            despesas={3000}
+            saldo={balance}
+            receitas={totalIncome}
+            despesas={totalExpense}
           />
         </View>
 
-        {/* SEÇÃO 3: TRANSAÇÕES */}
         <View style={styles.content}>
-          <View style={styles.sectionTitleRow}>
-            <Text style={styles.title}>Últimas Transações</Text>
-          </View>
+        <View style={styles.content}>
+  {/* ANTES ESTAVA <div>, MUDE PARA <View> */}
+  <View style={styles.sectionTitleRow}> 
+    <Text style={styles.title}>Últimas Transações</Text>
+    {transactions.length > 0 && (
+      <TouchableOpacity onPress={handleClearAll}>
+        <Text style={styles.ClearButtonText}>Limpar Tudo</Text>
+      </TouchableOpacity>
+    )}
+  </View>
+  {/* ... restante do código */}
+</View>
 
           {transactions.length > 0 ? (
             transactions.map((item) => (
-              <TransactionsItem
-                key={item.id}
-                label={item.label}
-                value={item.value}
-                type={item.type}
-                date={item.date}
-              />
+              <View key={item.id} style={styles.transactionWrapper}>
+                <View style={{ flex: 1 }}>
+                  <TransactionsItem
+                    label={item.label}
+                    value={item.value} // Passa o valor numérico, formata dentro do componente
+                    type={item.type}
+                    date={item.date}
+                  />
+                </View>
+                <TouchableOpacity
+                  onPress={() => handleDeleteTransaction(item.id)}
+                  style={styles.deleteIconButton}
+                >
+                  <Ionicons name="trash-outline" size={22} color="#EF4444" />
+                </TouchableOpacity>
+              </View>
             ))
           ) : (
             <Text style={styles.emptyText}>Nenhuma transação encontrada.</Text>
@@ -112,83 +102,16 @@ export default function Home() {
         </View>
       </ScrollView>
 
-      {/* Botão Flutuante "+" */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => setModalVisible(true)}
-      >
-        <Text style={styles.fabText}>+</Text>
-      </TouchableOpacity>
-
-      {/* Modal de Cadastro */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Nova Transação</Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Descrição"
-              value={newLabel}
-              onChangeText={setNewLabel}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Valor"
-              value={newValue}
-              onChangeText={setNewValue}
-              keyboardType="numeric"
-            />
-            <View style={styles.typeContainer}>
-              <TouchableOpacity
-                style={[styles.typeButton, newType === "income" && styles.typeButtonSelected]}
-                onPress={() => setNewType("income")}
-              >
-                <Text style={styles.typeButtonText}>Receita</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.typeButton, newType === "expense" && styles.typeButtonSelected]}
-                onPress={() => setNewType("expense")}
-              >
-                <Text style={styles.typeButtonText}>Despesa</Text>
-              </TouchableOpacity>
-            </View>
-            <TextInput
-              style={styles.input}
-              placeholder="Data (DD/MM/YYYY)"
-              value={newDate}
-              onChangeText={setNewDate}
-            />
-
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: '#10B981', marginTop: 20 }]}
-              onPress={addTransaction}
-            >
-              <Text style={styles.buttonText}>Adicionar</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: '#979292', marginTop: 10 }]}
-              onPress={() => setModalVisible(false)}
-            >
-              <Text style={styles.buttonText}>Cancelar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      {/* ... Restante do Modal e FAB ... */}
     </View>
   );
 }
 
+// ... (mantenha os estilos iguais)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F4F4F5",
+    backgroundColor: "#F4F4F5"
   } as ViewStyle,
   header: {
     flexDirection: "row",
@@ -196,85 +119,104 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 24,
     paddingTop: 60,
-    marginBottom: 20,
+    marginBottom: 20
   },
   greeting: {
     fontSize: 16,
-    color: "#71717A",
+    color: "#71717A"
   },
   userName: {
     fontSize: 22,
     fontWeight: "bold",
-    color: "#1A1A1E",
+    color: "#1A1A1E"
   },
   logoutButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: "#3703c7",
-    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 24,
+    backgroundColor: "#3703c7", borderRadius: 8
   },
   logoutText: {
     color: "#e4e3e7",
-    fontWeight: "600",
+    fontWeight: "600"
   },
   content: {
     paddingHorizontal: 24,
-    marginBottom: 24,
+    marginBottom: 24
   },
   sectionTitleRow: {
-    marginBottom: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16
   },
   title: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#1d1d20",
+    color: "#1d1d20"
   },
   emptyText: {
     textAlign: "center",
     color: "#A1A1AA",
     marginTop: 20,
-    fontStyle: "italic",
+    fontStyle: "italic"
+  },
+  transactionWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 10,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   fab: {
-    position: "absolute",
-    bottom: 30,
-    right: 30,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#311de1",
+  position: "absolute",
+  bottom: 30,
+  right: 20,
+  width: 64,
+  height: 64,
+  borderRadius: 32,
+  backgroundColor: "#311de1",
+  justifyContent: "center",
+  alignItems: "center",
+  elevation: 10, // Garante que fique acima de tudo no Android
+  zIndex: 99,    // Garante que fique acima de tudo no iOS
+},
+fabText: {
+  fontSize: 34,
+  color: "#FFFFFF",
+  fontWeight: "300", 
+  transform: [{ translateY: -2 }], // Ajuste fino para o centro
+},
+  deleteIconButton: {
+    padding: 10,
+    marginLeft: 8,
+    backgroundColor: "#FEE2E2",
+    borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
-    elevation: 5, // Sombra no Android
-    shadowColor: "#000", // Sombra no iOS
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
   },
-  fabText: {
-    fontSize: 32,
-    color: "#FFFFFF",
-    fontWeight: "bold",
-    transform: [{ translateY: -4 }], // Ajuste visual para centralizar o "+" no botão
-  },
-  // Estilos que faltavam para o Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-end",
+    justifyContent: "flex-end"
   },
   modalContent: {
     backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
-    height: "70%", // Ajuste o tamanho conforme necessário
+    height: "75%"
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: "bold",
     color: "#1A1A1E",
-    marginBottom: 20,
+    marginBottom: 20
   },
   input: {
     borderWidth: 1,
@@ -282,12 +224,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
-    fontSize: 16,
+    fontSize: 16
   },
   typeContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 16,
+    marginBottom: 16
   },
   typeButton: {
     flex: 1,
@@ -296,25 +238,30 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#D1D5DB",
     alignItems: "center",
-    marginHorizontal: 4,
+    marginHorizontal: 4
   },
   typeButtonSelected: {
-    backgroundColor: "#e4e4e4",
-    borderColor: "#0e21cc",
+    backgroundColor: "#6a6381",
+    borderColor: "#8d8d90"
   },
   typeButtonText: {
     color: "#0d0d9b",
-    fontWeight: "600",
+    fontWeight: "600"
   },
   button: {
     height: 50,
     borderRadius: 8,
     justifyContent: "center",
-    alignItems: "center",
+    alignItems: "center"
   },
   buttonText: {
-    color: "#292323",
+    color: "#303030",
     fontWeight: "600",
-    fontSize: 16,
+    fontSize: 16
+  },
+  ClearButtonText: {
+    color: "#EF4444",
+    fontWeight: "600",
+    fontSize: 14
   },
 });
