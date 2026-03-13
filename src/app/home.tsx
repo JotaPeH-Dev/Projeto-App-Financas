@@ -27,6 +27,7 @@ export default function Home() {
   const [newType, setNewType] = useState<"income" | "expense">("income");
   const [newDate, setNewDate] = useState("");
 
+  // 1. CARREGAR DADOS
   useEffect(() => {
     async function loadTransactions() {
       const response = await AsyncStorage.getItem(DATA_KEY);
@@ -36,6 +37,30 @@ export default function Home() {
     loadTransactions();
   }, []);
 
+  // 2. FORMATAÇÃO DE MOEDA (R$)
+  const formatCurrency = (value: number) => {
+    return value.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    });
+  };
+
+  // 3. MÁSCARA DE DATA
+  const handleDateChange = (text: string) => {
+    let cleaned = text.replace(/\D/g, "");
+    if (cleaned.length > 8) cleaned = cleaned.substring(0, 8);
+
+    let formatted = cleaned;
+    if (cleaned.length > 2) {
+      formatted = `${cleaned.substring(0, 2)}/${cleaned.substring(2)}`;
+    }
+    if (cleaned.length > 4) {
+      formatted = `${cleaned.substring(0, 2)}/${cleaned.substring(2, 4)}/${cleaned.substring(4)}`;
+    }
+    setNewDate(formatted);
+  };
+
+  // 4. FUNÇÃO ADICIONAR
   const addTransaction = async () => {
     if (!newLabel || !newValue || !newDate) {
       Alert.alert("Erro", "Preencha todos os campos.");
@@ -71,7 +96,7 @@ export default function Home() {
     }
   };
 
-  // 1. FUNÇÃO DELETAR ÚNICO ITEM
+  // 5. FUNÇÃO DELETAR ÚNICO ITEM
   const handleDeleteTransaction = async (id: string) => {
     Alert.alert("Excluir", "Deseja remover este item?", [
       { text: "Cancelar", style: "cancel" },
@@ -87,7 +112,7 @@ export default function Home() {
     ]);
   };
 
-  // 2. FUNÇÃO LIMPAR TUDO
+  // 6. FUNÇÃO LIMPAR TUDO
   const handleClearAll = async () => {
     Alert.alert("Limpar tudo", "Remover todas as transações?", [
       { text: "Cancelar", style: "cancel" },
@@ -102,6 +127,7 @@ export default function Home() {
     ]);
   };
 
+  // CÁLCULOS
   const totalIncome = transactions
     .filter(item => item.type === "income")
     .reduce((acc, item) => acc + item.value, 0);
@@ -111,8 +137,6 @@ export default function Home() {
     .reduce((acc, item) => acc + item.value, 0);
 
   const balance = totalIncome - totalExpense;
-
-  // ... (mantenha os imports e tipos iguais ao início do seu arquivo)
 
   return (
     <View style={{ flex: 1 }}>
@@ -128,18 +152,22 @@ export default function Home() {
         </View>
 
         <View style={styles.content}>
-          <BalanceCard saldo={balance} receitas={totalIncome} despesas={totalExpense} />
+          <BalanceCard
+            saldo={balance}
+            receitas={totalIncome}
+            despesas={totalExpense}
+          />
         </View>
 
         <View style={styles.content}>
-          <View style={styles.sectionTitleRow}>
+          <div style={styles.sectionTitleRow}>
             <Text style={styles.title}>Últimas Transações</Text>
             {transactions.length > 0 && (
               <TouchableOpacity onPress={handleClearAll}>
                 <Text style={styles.ClearButtonText}>Limpar Tudo</Text>
               </TouchableOpacity>
             )}
-          </View>
+          </div>
 
           {transactions.length > 0 ? (
             transactions.map((item) => (
@@ -147,7 +175,7 @@ export default function Home() {
                 <View style={{ flex: 1 }}>
                   <TransactionsItem
                     label={item.label}
-                    value={item.value}
+                    value={item.value} // Passa o valor como número
                     type={item.type}
                     date={item.date}
                   />
@@ -156,14 +184,7 @@ export default function Home() {
                   onPress={() => handleDeleteTransaction(item.id)}
                   style={styles.deleteIconButton}
                 >
-                  <Ionicons
-                    name={item.type === 'income' ? "arrow-up-circle" : "arrow-down-circle"}
-                    size={24}
-                    color={item.type === 'income' ? "#10B981" : "#a8dca6"}
-                  />
-                  <Ionicons name="trash-outline" size={20} color="#EF4444" />
-
-
+                  <Ionicons name="trash-outline" size={22} color="#EF4444" />
                 </TouchableOpacity>
               </View>
             ))
@@ -173,12 +194,10 @@ export default function Home() {
         </View>
       </ScrollView>
 
-      {/* BOTÃO FLUTUANTE (FAB) */}
       <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
 
-      {/* MODAL DE ADIÇÃO (O que estava faltando) */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -224,7 +243,9 @@ export default function Home() {
               style={styles.input}
               placeholder="Data (DD/MM/YYYY)"
               value={newDate}
-              onChangeText={setNewDate}
+              onChangeText={handleDateChange}
+              keyboardType="numeric"
+              maxLength={10}
             />
 
             <TouchableOpacity
@@ -246,170 +267,153 @@ export default function Home() {
     </View>
   );
 }
-/* Removed duplicate styles declaration */
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: "#F4F4F5",
+     flex: 1, 
+    backgroundColor: "#F4F4F5" 
   } as ViewStyle,
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    marginBottom: 20,
-  },
+     flexDirection: "row",
+     justifyContent: "space-between",
+      alignItems: "center",
+       paddingHorizontal: 24,
+        paddingTop: 60,
+         marginBottom: 20 },
   greeting: {
-    fontSize: 16,
-    color: "#71717A",
-  },
+     fontSize: 16,
+     color: "#71717A" 
+    },
   userName: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#1A1A1E",
-  },
+     fontSize: 22,
+     fontWeight: "bold",
+      color: "#1A1A1E" 
+    },
   logoutButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: "#3703c7",
-    borderRadius: 8,
-  },
+     paddingVertical: 6,
+     paddingHorizontal: 12,
+      backgroundColor: "#3703c7", borderRadius: 8 
+    },
   logoutText: {
-    color: "#e4e3e7",
-    fontWeight: "600",
-  },
+     color: "#e4e3e7",
+     fontWeight: "600" 
+    },
   content: {
-    paddingHorizontal: 24,
-    marginBottom: 24,
-  },
+     paddingHorizontal: 24,
+     marginBottom: 24 
+    },
   sectionTitleRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
+     flexDirection: "row",
+     justifyContent: "space-between",
+      alignItems: "center",
+       marginBottom: 16 
+      },
   title: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#1d1d20",
-  },
+     fontSize: 18,
+     fontWeight: "700",
+      color: "#1d1d20" 
+    },
   emptyText: {
-    textAlign: "center",
-    color: "#A1A1AA",
-    marginTop: 20,
-    fontStyle: "italic",
-  },
+     textAlign: "center",
+     color: "#A1A1AA",
+      marginTop: 20,
+       fontStyle: "italic" 
+      },
   transactionWrapper: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 12,
     backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 8,
+    borderRadius: 12,
+    padding: 10,
+    elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
-    elevation: 2,
   },
   fab: {
-    position: "absolute",
-    bottom: 30,
-    right: 30,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#311de1",
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 5, // Sombra no Android
-    shadowColor: "#000", // Sombra no iOS
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
+     position: "absolute",
+     bottom: 30,
+      right: 30,
+       width: 60,
+        height: 60,
+         borderRadius: 30,
+          backgroundColor: "#311de1",
+           justifyContent: "center",
+            alignItems: "center",
+             elevation: 5 
+            },
   fabText: {
-    fontSize: 32,
-    color: "#FFFFFF",
-    fontWeight: "bold",
-    transform: [{ translateY: -4 }], // Ajuste visual para centralizar o "+" no botão
-  },
+     fontSize: 32,
+     color: "#FFFFFF",
+      fontWeight: "bold" 
+    },
   deleteIconButton: {
     padding: 10,
     marginLeft: 8,
-    backgroundColor: "#FEE2E2", // Vermelho clarinho
+    backgroundColor: "#FEE2E2",
     borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
   },
-
-  // Estilos que faltavam para o Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-end",
-  },
-  modalContent: {
-    backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    height: "70%", // Ajuste o tamanho conforme necessário
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#1A1A1E",
-    marginBottom: 20,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    fontSize: 16,
-  },
-  typeContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 16,
-  },
+  modalOverlay: { flex: 1,
+     backgroundColor: "rgba(0,0,0,0.5)",
+      justifyContent: "flex-end" 
+    },
+  modalContent: { backgroundColor: "#FFFFFF",
+     borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+       padding: 24,
+        height: "75%" 
+      },
+  modalTitle: { fontSize: 20,
+     fontWeight: "bold",
+      color: "#1A1A1E",
+       marginBottom: 20 
+      },
+  input: { borderWidth: 1,
+     borderColor: "#D1D5DB",
+      borderRadius: 8,
+       padding: 12,
+        marginBottom: 16,
+         fontSize: 16 
+        },
+  typeContainer: { flexDirection: "row",
+     justifyContent: "space-between",
+      marginBottom: 16 
+    },
   typeButton: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    alignItems: "center",
-    marginHorizontal: 4,
-  },
+     flex: 1,
+      padding: 12,
+       borderRadius: 8,
+        borderWidth: 1,
+         borderColor: "#D1D5DB",
+          alignItems: "center",
+           marginHorizontal: 4 
+          },
   typeButtonSelected: {
-    backgroundColor: "#e4e4e4",
-    borderColor: "#0e21cc",
-  },
+     backgroundColor: "#651616",
+      borderColor: "#0e21cc" 
+    },
   typeButtonText: {
-    color: "#0d0d9b",
-    fontWeight: "600",
-  },
+     color: "#0d0d9b",
+      fontWeight: "600" 
+    },
   button: {
-    height: 50,
-    borderRadius: 8,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+     height: 50,
+     borderRadius: 8,
+      justifyContent: "center",
+       alignItems: "center" 
+      },
   buttonText: {
-    color: "#292323",
-    fontWeight: "600",
-    fontSize: 16,
-  },
-  ClearButtonText: {
+     color: "#292323",
+      fontWeight: "600",
+       fontSize: 16 
+      },
+  ClearButtonText: { 
     color: "#EF4444",
-    fontWeight: "600",
-    fontSize: 14,
-  },
-
-
+     fontWeight: "600",
+      fontSize: 14 
+    },
 });
