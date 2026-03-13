@@ -1,10 +1,18 @@
-import { useState } from "react";
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useAuth } from "src/contexts/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
-
+import { useEffect, useState } from "react";
+import { Alert, 
+  Modal, 
+  ScrollView, 
+  StyleSheet, 
+  Text, 
+  TextInput, 
+  TouchableOpacity, 
+  View, 
+  ViewStyle } from "react-native";
 import BalanceCard from "@/Components/BalanceCard";
 import TransactionsItem from "@/Components/TransactionsItem";
-import { useAuth } from "src/contexts/AuthContext";
 
 const DATA_KEY = "@myfinances:transactions";
 
@@ -16,7 +24,7 @@ type Transaction = {
   date: string;
 };
 
-// ... (mantenha os imports e tipos iguais)
+// ... (mantenha os imports iguais)
 
 export default function Home() {
   const { user, signOut } = useAuth();
@@ -26,6 +34,39 @@ export default function Home() {
   const [newValue, setNewValue] = useState("");
   const [newType, setNewType] = useState("income");
   const [newDate, setNewDate] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  // 1. CARREGAR DADOS AO ABRIR
+  useEffect(() => {
+    async function loadTransactions() {
+      try {
+        const storedData = await AsyncStorage.getItem(DATA_KEY);
+        if (storedData) {
+          setTransactions(JSON.parse(storedData));
+        }
+      } catch (error) {
+        console.error("Erro ao carregar:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadTransactions();
+  }, []);
+
+  // 2. SALVAR DADOS SEMPRE QUE A LISTA MUDAR
+  useEffect(() => {
+    async function saveTransactions() {
+      // SÓ salva se não estiver mais carregando (segurança)
+      if (!loading) {
+        try {
+          await AsyncStorage.setItem(DATA_KEY, JSON.stringify(transactions));
+        } catch (error) {
+          console.error("Erro ao salvar:", error);
+        }
+      }
+    }
+    saveTransactions();
+  }, [transactions, loading]);
 
   const addTransaction = () => {
     if (!newLabel || !newValue || !newDate) {
@@ -37,9 +78,21 @@ export default function Home() {
       Alert.alert("Erro", "Valor deve ser um número.");
       return;
     }
-    const newId = (transactions.length + 1).toString();
-    const newTransactions = { id: newId, label: newLabel, value, type: newType as "income" | "expense", date: newDate };
-    setTransactions([...transactions, newTransactions]);
+
+    // ID único baseado no tempo para evitar duplicatas
+    const newId = Date.now().toString();
+    
+    const newTransaction: Transaction = { 
+      id: newId, 
+      label: newLabel, 
+      value, 
+      type: newType as "income" | "expense", 
+      date: newDate 
+    };
+
+    setTransactions([...transactions, newTransaction]);
+    
+    // LIMPAR CAMPOS E FECHAR MODAL
     setNewLabel("");
     setNewValue("");
     setNewType("income");
@@ -47,7 +100,11 @@ export default function Home() {
     setModalVisible(false);
   };
 
-  // Função para limpar todas as transações
+  if (loading) return null;
+
+  // ... (restante das funções handleClearAll e handleDeleteTransaction iguais)
+  // ... (return JSX igual)
+
   const handleClearAll = () => {
     Alert.alert(
       "Limpar Tudo",
@@ -59,7 +116,6 @@ export default function Home() {
     );
   };
 
-  // Função para deletar uma transação pelo id
   const handleDeleteTransaction = (id: string) => {
     Alert.alert(
       "Excluir Transação",
@@ -71,7 +127,6 @@ export default function Home() {
     );
   };
 
-  // Calcula receitas, despesas e saldo
   const totalIncome = transactions
     .filter((t) => t.type === "income")
     .reduce((sum: number, t) => sum + t.value, 0);
@@ -83,10 +138,17 @@ export default function Home() {
   return (
     <View style={{ flex: 1 }}>
       <ScrollView style={styles.container}>
-        {/* ... Header ... */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.greeting}>Olá,</Text>
+            <Text style={styles.userName}>{user?.name || "João Pedro"}</Text>
+          </View>
+          <TouchableOpacity style={styles.logoutButton} onPress={signOut}>
+            <Text style={styles.logoutText}>Sair</Text>
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.content}>
-          {/* AQUI ESTAVA O PROBLEMA: Precisamos passar os valores formatados */}
           <BalanceCard
             saldo={balance}
             receitas={totalIncome}
@@ -95,17 +157,13 @@ export default function Home() {
         </View>
 
         <View style={styles.content}>
-          <View style={styles.content}>
-            {/* ANTES ESTAVA <div>, MUDE PARA <View> */}
-            <View style={styles.sectionTitleRow}>
-              <Text style={styles.title}>Últimas Transações</Text>
-              {transactions.length > 0 && (
-                <TouchableOpacity onPress={handleClearAll}>
-                  <Text style={styles.ClearButtonText}>Limpar Tudo</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-            {/* ... restante do código */}
+          <View style={styles.sectionTitleRow}>
+            <Text style={styles.title}>Últimas Transações</Text>
+            {transactions.length > 0 && (
+              <TouchableOpacity onPress={handleClearAll}>
+                <Text style={styles.ClearButtonText}>Limpar Tudo</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {transactions.length > 0 ? (
@@ -114,7 +172,7 @@ export default function Home() {
                 <View style={{ flex: 1 }}>
                   <TransactionsItem
                     label={item.label}
-                    value={item.value} // Passa o valor numérico, formata dentro do componente
+                    value={item.value}
                     type={item.type}
                     date={item.date}
                   />
@@ -133,16 +191,93 @@ export default function Home() {
         </View>
       </ScrollView>
 
-      {/* ... Restante do Modal e FAB ... */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => setModalVisible(true)}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.fabText}>+</Text>
+      </TouchableOpacity>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Nova Transação</Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Descrição"
+              placeholderTextColor="#A1A1AA"
+              value={newLabel}
+              onChangeText={setNewLabel}
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Valor (ex: 50.00)"
+              placeholderTextColor="#A1A1AA"
+              keyboardType="numeric"
+              value={newValue}
+              onChangeText={setNewValue}
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Data (DD/MM/AAAA)"
+              placeholderTextColor="#A1A1AA"
+              value={newDate}
+              onChangeText={setNewDate}
+            />
+
+            <View style={styles.typeContainer}>
+              <TouchableOpacity
+                style={[styles.typeButton, newType === 'income' && styles.typeButtonSelected]}
+                onPress={() => setNewType('income')}
+              >
+                <Text style={[styles.typeButtonText, newType === 'income' && { color: "#FFF" }]}>
+                  Receita
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.typeButton, newType === 'expense' && styles.typeButtonSelected]}
+                onPress={() => setNewType('expense')}
+              >
+                <Text style={[styles.typeButtonText, newType === 'expense' && { color: "#FFF" }]}>
+                  Despesa
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity 
+              style={[styles.button, { backgroundColor: '#311de1' }]} 
+              onPress={addTransaction}
+            >
+              <Text style={styles.buttonText}>Confirmar</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={{ marginTop: 15, alignItems: 'center' }} 
+              onPress={() => setModalVisible(false)}
+            >
+              <Text style={{ color: '#EF4444', fontWeight: '600' }}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
-// ... (mantenha os estilos iguais)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F4F4F5"
+    backgroundColor: "#000000"
   } as ViewStyle,
   header: {
     flexDirection: "row",
@@ -159,12 +294,13 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 22,
     fontWeight: "bold",
-    color: "#1A1A1E"
+    color: "#FEFEFE"
   },
   logoutButton: {
     paddingVertical: 8,
     paddingHorizontal: 24,
-    backgroundColor: "#3703c7", borderRadius: 8
+    backgroundColor: "#311de1", 
+    borderRadius: 8
   },
   logoutText: {
     color: "#e4e3e7",
@@ -183,11 +319,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#1d1d20"
+    color: "#b4b4b4"
   },
   emptyText: {
     textAlign: "center",
-    color: "#A1A1AA",
+    color: "#71717A",
     marginTop: 20,
     fontStyle: "italic"
   },
@@ -214,14 +350,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#311de1",
     justifyContent: "center",
     alignItems: "center",
-    elevation: 10, // Garante que fique acima de tudo no Android
-    zIndex: 99,    // Garante que fique acima de tudo no iOS
+    elevation: 10,
+    zIndex: 99,
   },
   fabText: {
     fontSize: 34,
-    color: "#FFFFFF",
+    color: "#FEFEFE",
     fontWeight: "300",
-    transform: [{ translateY: -2 }], // Ajuste fino para o centro
+    transform: [{ translateY: -2 }],
   },
   deleteIconButton: {
     padding: 10,
@@ -233,7 +369,7 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "flex-end"
   },
   modalContent: {
@@ -251,11 +387,12 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: "#D1D5DB",
+    borderColor: "#aeafb1",
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
-    fontSize: 16
+    fontSize: 16,
+    color: "#000"
   },
   typeContainer: {
     flexDirection: "row",
@@ -267,16 +404,16 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#D1D5DB",
+    borderColor: "#311de1",
     alignItems: "center",
     marginHorizontal: 4
   },
   typeButtonSelected: {
-    backgroundColor: "#6a6381",
-    borderColor: "#8d8d90"
+    backgroundColor: "#311de1",
+    borderColor: "#311de1"
   },
   typeButtonText: {
-    color: "#0d0d9b",
+    color: "#311de1",
     fontWeight: "600"
   },
   button: {
@@ -286,12 +423,12 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   buttonText: {
-    color: "#303030",
+    color: "#ebe3e3",
     fontWeight: "600",
     fontSize: 16
   },
   ClearButtonText: {
-    color: "#EF4444",
+    color: "#71717A",
     fontWeight: "600",
     fontSize: 14
   },
