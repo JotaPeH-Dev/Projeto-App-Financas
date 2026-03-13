@@ -1,8 +1,17 @@
 import BalanceCard from "@/Components/BalanceCard";
 import TransactionsItem from "@/Components/TransactionsItem";
 import { useState } from "react";
-import { Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, ViewStyle } from "react-native";
+import { Alert, 
+  Modal, 
+  ScrollView, 
+  StyleSheet, 
+  Text, 
+  TextInput, 
+  TouchableOpacity, 
+  View, 
+  ViewStyle } from "react-native";
 import { useAuth } from "src/contexts/AuthContext";
+import { set } from "zod";
 
 const MOCK_TRANSACTIONS = [
   { id: 1, label: "Salário", value: 5000, type: "income" as const, date: "01/09/2024" },
@@ -37,6 +46,24 @@ export default function Home() {
     setNewType("income");
     setNewDate("");
     setModalVisible(false);
+    const deleteTransaction = (id: number) => {
+    const updatedTransactions = transactions.filter(item => item.id !== id);
+    setTransactions(updatedTransactions);
+  
+    const confirmDelete = (id: number) => {
+      Alert.alert(
+        "Excluir Transação",
+        "Tem certeza que deseja excluir esta transação?",
+        [
+          { text: "Cancelar", style: "cancel" },
+          { text: "Excluir", 
+            onPress: () => deleteTransaction(id),
+            style: "destructive"
+          }
+        ]
+      );
+    }
+  };
   };
 
   return (
