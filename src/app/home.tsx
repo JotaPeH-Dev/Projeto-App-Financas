@@ -113,27 +113,32 @@ export default function Home() {
   // ... (restante das funções handleClearAll e handleDeleteTransaction iguais)
   // ... (return JSX igual)
 
-  const handleClearAll = () => {
-    Alert.alert(
-      "Limpar Tudo",
-      "Tem certeza que deseja remover todas as transações?",
-      [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Sim", style: "destructive", onPress: () => setTransactions([]) }
-      ]
-    );
-  };
-
   const handleDeleteTransaction = (id: string) => {
-    Alert.alert(
-      "Excluir Transação",
-      "Tem certeza que deseja excluir esta transação?",
-      [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Excluir", style: "destructive", onPress: () => setTransactions(transactions.filter(t => t.id !== id)) }
-      ]
-    );
-  };
+  Alert.alert(
+    "Excluir Transação",
+    "Tem certeza que deseja excluir esta transação?",
+    [
+      { text: "Cancelar", style: "cancel" },
+      { 
+        text: "Excluir", 
+        style: "destructive", 
+        // Use o callback (prev) para garantir a versão mais recente da lista
+        onPress: () => setTransactions(prev => prev.filter(t => t.id !== id)) 
+      }
+    ]
+  );
+};
+
+const handleClearAll = () => {
+  Alert.alert(
+    "Limpar Tudo",
+    "Tem certeza que deseja remover todas as transações?",
+    [
+      { text: "Cancelar", style: "cancel" },
+      { text: "Sim", style: "destructive", onPress: () => setTransactions([]) }
+    ]
+  );
+};
 
   const totalIncome = transactions
     .filter((t) => t.type === "income")
