@@ -194,7 +194,7 @@ const handleClearAll = () => {
                     date={item.date}
                   />
                 </View>
-                // ... dentro do seu map de transactions
+                {/*dentro do seu map de transactions*/}
 <TouchableOpacity
   onPress={() => handleDeleteTransaction(item.id)} // Adicione a arrow function () => aqui!
   style={styles.deleteIconButton}
