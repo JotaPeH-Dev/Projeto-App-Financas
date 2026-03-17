@@ -200,22 +200,28 @@ const chartData = [
           />
         </View>
 
-        <View style={styles.content}>
-  <Text style={styles.title}>Resumo Mensal</Text>
+        <View style={[styles.content, { alignItems: 'center' }]}>
+  <Text style={[styles.title, { alignSelf: 'flex-start', marginBottom: 10 }]}>
+    Resumo de Gastos
+  </Text>
   
-  <PieChart
-    data={chartData}
-    width={Dimensions.get("window").width - 48} // Ajusta à largura da tela
-    height={200}
-    chartConfig={{
-      color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-    }}
-    accessor={"population"}
-    backgroundColor={"transparent"}
-    paddingLeft={"15"}
-    absolute // Mostra os valores reais em vez de porcentagem
-  />
-  </View>
+  {transactions.length > 0 ? (
+    <PieChart
+      data={chartData}
+      width={Dimensions.get("window").width - 48}
+      height={200}
+      chartConfig={{
+        color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+      }}
+      accessor={"population"}
+      backgroundColor={"transparent"}
+      paddingLeft={"15"}
+      absolute // Isso mostra o valor real. Se quiser %, apague essa linha.
+    />
+  ) : (
+    <Text style={styles.emptyText}>Adicione transações para ver o gráfico.</Text>
+  )}
+</View>
 
         <View style={styles.content}>
           <View style={styles.sectionTitleRow}>
