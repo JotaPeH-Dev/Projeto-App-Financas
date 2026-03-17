@@ -10,7 +10,8 @@ import { Alert,
   TextInput, 
   TouchableOpacity, 
   View, 
-  ViewStyle } from "react-native";
+  ViewStyle,
+  Keyboard } from "react-native";
 import BalanceCard from "@/Components/BalanceCard";
 import TransactionsItem from "@/Components/TransactionsItem";
 
@@ -35,6 +36,7 @@ export default function Home() {
   const [newType, setNewType] = useState("income");
   const [newDate, setNewDate] = useState("");
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
 
   // 1. CARREGAR DADOS AO ABRIR
   useEffect(() => {
@@ -108,30 +110,15 @@ export default function Home() {
     setModalVisible(false);
   };
 
-  if (loading) return null;
+const handleDeleteTransaction = (id: string) => {
+  console.log("CLIQUE CONFIRMADO no ID:", id);
 
-  // ... (restante das funções handleClearAll e handleDeleteTransaction iguais)
-  // ... (return JSX igual)
-
-  const handleDeleteTransaction = (id: string) => {
-  console.log("ID recebido para deletar:", id);
-  console.log("IDs existentes na lista:", transactions.map(t => t.id));
-
-  Alert.alert(
-    "Excluir Transação",
-    "Tem certeza?",
-    [
-      { text: "Cancelar" },
-      { 
-        text: "Excluir", 
-        onPress: () => {
-          const novaLista = transactions.filter(t => t.id !== id);
-          console.log("Tamanho antes:", transactions.length, "Tamanho depois:", novaLista.length);
-          setTransactions(novaLista);
-        } 
-      }
-    ]
-  );
+  // Vamos deletar direto SEM o Alert para testar a lógica
+  setTransactions(prev => {
+    const novaLista = prev.filter(item => item.id !== id);
+    console.log("Lista atualizada! Novo tamanho:", novaLista.length);
+    return novaLista;
+  });
 };
 const handleClearAll = () => {
   Alert.alert(
@@ -144,13 +131,36 @@ const handleClearAll = () => {
   );
 };
 
-  const totalIncome = transactions
-    .filter((t) => t.type === "income")
-    .reduce((sum: number, t) => sum + t.value, 0);
-  const totalExpense = transactions
-    .filter((t) => t.type === "expense")
-    .reduce((sum: number, t) => sum + t.value, 0);
-  const balance = totalIncome - totalExpense;
+const handleDateChange = (text: string) => {
+  // Remove tudo que não for número
+  let cleaned = text.replace(/\D/g, "");
+
+  // Limita a 8 dígitos (DDMMYYYY)
+  if (cleaned.length > 8) {
+    cleaned = cleaned.slice(0, 8);
+  }
+
+  // Aplica a máscara progressivamente
+  let formatted = cleaned;
+  if (cleaned.length > 2) {
+    formatted = `${cleaned.slice(0, 2)}/${cleaned.slice(2)}`;
+  }
+  if (cleaned.length > 4) {
+    formatted = `${cleaned.slice(0, 2)}/${cleaned.slice(2, 4)}/${cleaned.slice(4)}`;
+  }
+
+  setNewDate(formatted);
+};
+
+if (loading) return null;
+
+const totalIncome = transactions
+  .filter((t) => t.type === "income")
+  .reduce((sum: number, t) => sum + t.value, 0);
+const totalExpense = transactions
+  .filter((t) => t.type === "expense")
+  .reduce((sum: number, t) => sum + t.value, 0);
+const balance = totalIncome - totalExpense;
 
   return (
     <View style={{ flex: 1 }}>
@@ -183,7 +193,7 @@ const handleClearAll = () => {
             )}
           </View>
 
-          {transactions.length > 0 ? (
+{transactions.length > 0 ? (
             transactions.map((item) => (
               <View key={item.id} style={styles.transactionWrapper}>
                 <View style={{ flex: 1 }}>
@@ -196,7 +206,7 @@ const handleClearAll = () => {
                 </View>
                 {/*dentro do seu map de transactions*/}
 <TouchableOpacity
-  onPress={() => handleDeleteTransaction(item.id)} // Adicione a arrow function () => aqui!
+  onPress={() => handleDeleteTransaction(item.id)} // O '() =>' é obrigatório!
   style={styles.deleteIconButton}
 >
   <Ionicons name="trash-outline" size={22} color="#EF4444" />
@@ -226,34 +236,61 @@ const handleClearAll = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Nova Transação</Text>
+{/* Campo de Descrição */}
+<TextInput
+  style={styles.input}
+  placeholder="Descrição"
+  placeholderTextColor="#A1A1AA"
+  value={newLabel}
+  onChangeText={setNewLabel}
+  returnKeyType="next" // Mostra "Próximo" no teclado
+/>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Descrição"
-              placeholderTextColor="#A1A1AA"
-              value={newLabel}
-              onChangeText={setNewLabel}
-            />
+{/* Campo de Valor */}
+<TextInput
+  style={styles.input}
+  placeholder="Valor (ex: 50.00)"
+  placeholderTextColor="#A1A1AA"
+  value={newValue}
+  onChangeText={setNewValue}
+  keyboardType="decimal-pad" // Teclado numérico com ponto/vírgula
+  returnKeyType="next"
+/>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Valor (ex: 50.00)"
-              placeholderTextColor="#A1A1AA"
-              keyboardType="numeric"
-              value={newValue}
-              onChangeText={setNewValue}
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="Data (DD/MM/AAAA)"
-              placeholderTextColor="#A1A1AA"
-              value={newDate}
-              onChangeText={setNewDate}
-            />
-
+{/* Campo de Data */}
+<TextInput
+  style={styles.input}
+  placeholder="Data (DD/MM/AAAA)"
+  placeholderTextColor="#A1A1AA"
+  value={newDate}
+  onChangeText={handleDateChange}
+  keyboardType="numeric" // Teclado numérico puro
+  maxLength={10}
+  returnKeyType="done" // Mostra "Concluir" no teclado
+/>
+          
             <View style={styles.typeContainer}>
-              <TouchableOpacity
+            <TouchableOpacity 
+    style={[styles.filterButton, filter === 'all' && styles.filterButtonActive]}
+    onPress={() => setFilter('all')}
+  >
+    <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>Todas</Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity 
+    style={[styles.filterButton, filter === 'income' && styles.filterButtonActive]}
+    onPress={() => setFilter('income')}
+  >
+    <Text style={[styles.filterText, filter === 'income' && styles.filterTextActive]}>Receitas</Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity 
+    style={[styles.filterButton, filter === 'expense' && styles.filterButtonActive]}
+    onPress={() => setFilter('expense')}
+  >
+            <Text style={[styles.filterText, filter === 'expense' && styles.filterTextActive]}>Despesas</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
                 style={[styles.typeButton, newType === 'income' && styles.typeButtonSelected]}
                 onPress={() => setNewType('income')}
               >
@@ -450,4 +487,32 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 14
   },
+filterButton: {
+  paddingVertical: 8,
+  paddingHorizontal: 16,
+  borderRadius: 20,
+  backgroundColor: '#18181B',
+  borderWidth: 1,
+  borderColor: '#3F3F46',
+  flex: 1,
+  alignItems: "center",
+  marginHorizontal: 4
+},
+filterButtonActive: {
+  backgroundColor: "#311de1",
+  borderColor: "#311de1"
+},
+filterText: {
+  color: '#A1A1AA',
+  fontWeight: '600'
+},
+filterTextActive: {
+  color: '#FFF'
+},
+filterContainer: {
+  flexDirection: 'row',
+  justifyContent: 'center',
+  marginBottom: 20,
+  gap: 10,
+},
 });
