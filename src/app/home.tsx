@@ -2,18 +2,20 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "src/contexts/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
-import { Alert, 
-  Modal, 
-  ScrollView, 
-  StyleSheet, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  View, 
+import { Alert,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
   ViewStyle,
   Keyboard } from "react-native";
 import BalanceCard from "@/Components/BalanceCard";
 import TransactionsItem from "@/Components/TransactionsItem";
+import { PieChart } from "react-native-chart-kit";
+import { Dimensions } from "react-native";
 
 const DATA_KEY = "@myfinances:transactions";
 
@@ -162,6 +164,21 @@ const totalExpense = transactions
   .reduce((sum: number, t) => sum + t.value, 0);
 const balance = totalIncome - totalExpense;
 
+const chartData = [
+  { name: "Receitas",
+    population: totalIncome,
+    color: "#311de1",
+    legendFontColor: "#71717A",
+    legendFontSize: 12
+  },
+  { name: "Despesas",
+    population: totalExpense,
+    color: "#EF4444",
+    legendFontColor: "#71717A",
+    legendFontSize: 12
+  }
+];
+
   return (
     <View style={{ flex: 1 }}>
       <ScrollView style={styles.container}>
@@ -184,6 +201,23 @@ const balance = totalIncome - totalExpense;
         </View>
 
         <View style={styles.content}>
+  <Text style={styles.title}>Resumo Mensal</Text>
+  
+  <PieChart
+    data={chartData}
+    width={Dimensions.get("window").width - 48} // Ajusta à largura da tela
+    height={200}
+    chartConfig={{
+      color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+    }}
+    accessor={"population"}
+    backgroundColor={"transparent"}
+    paddingLeft={"15"}
+    absolute // Mostra os valores reais em vez de porcentagem
+  />
+  </View>
+
+        <View style={styles.content}>
           <View style={styles.sectionTitleRow}>
             <Text style={styles.title}>Últimas Transações</Text>
             {transactions.length > 0 && (
@@ -192,31 +226,54 @@ const balance = totalIncome - totalExpense;
               </TouchableOpacity>
             )}
           </View>
+          <View style={styles.filterContainer}>
+    <TouchableOpacity 
+      style={[styles.filterButton, filter === 'all' && styles.filterButtonActive]}
+      onPress={() => setFilter('all')}
+    >
+      <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>Todas</Text>
+    </TouchableOpacity>
+
+    <TouchableOpacity 
+      style={[styles.filterButton, filter === 'income' && styles.filterButtonActive]}
+      onPress={() => setFilter('income')}
+    >
+      <Text style={[styles.filterText, filter === 'income' && styles.filterTextActive]}>Receitas</Text>
+    </TouchableOpacity>
+
+    <TouchableOpacity 
+      style={[styles.filterButton, filter === 'expense' && styles.filterButtonActive]}
+      onPress={() => setFilter('expense')}
+    >
+      <Text style={[styles.filterText, filter === 'expense' && styles.filterTextActive]}>Despesas</Text>
+    </TouchableOpacity>
+  </View>
 
 {transactions.length > 0 ? (
-            transactions.map((item) => (
-              <View key={item.id} style={styles.transactionWrapper}>
-                <View style={{ flex: 1 }}>
-                  <TransactionsItem
-                    label={item.label}
-                    value={item.value}
-                    type={item.type}
-                    date={item.date}
-                  />
-                </View>
-                {/*dentro do seu map de transactions*/}
-<TouchableOpacity
-  onPress={() => handleDeleteTransaction(item.id)} // O '() =>' é obrigatório!
-  style={styles.deleteIconButton}
->
-  <Ionicons name="trash-outline" size={22} color="#EF4444" />
-</TouchableOpacity>
-              </View>
-            ))
-          ) : (
-            <Text style={styles.emptyText}>Nenhuma transação encontrada.</Text>
-          )}
+    transactions
+      .filter(item => filter === 'all' ? true : item.type === filter) // A Mágica acontece aqui!
+      .map((item) => (
+        <View key={item.id} style={styles.transactionWrapper}>
+          <View style={{ flex: 1 }}>
+            <TransactionsItem
+              label={item.label}
+              value={item.value}
+              type={item.type}
+              date={item.date}
+            />
+          </View>
+          <TouchableOpacity
+            onPress={() => handleDeleteTransaction(item.id)}
+            style={styles.deleteIconButton}
+          >
+            <Ionicons name="trash-outline" size={22} color="#EF4444" />
+          </TouchableOpacity>
         </View>
+      ))
+  ) : (
+    <Text style={styles.emptyText}>Nenhuma transação encontrada.</Text>
+  )}
+</View>
       </ScrollView>
 
       <TouchableOpacity
@@ -269,45 +326,25 @@ const balance = totalIncome - totalExpense;
   returnKeyType="done" // Mostra "Concluir" no teclado
 />
           
-            <View style={styles.typeContainer}>
-            <TouchableOpacity 
-    style={[styles.filterButton, filter === 'all' && styles.filterButtonActive]}
-    onPress={() => setFilter('all')}
-  >
-    <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>Todas</Text>
-  </TouchableOpacity>
+          <View style={styles.typeContainer}>
+<TouchableOpacity
+  style={[styles.typeButton, newType === 'income' && styles.typeButtonSelected]}
+  onPress={() => setNewType('income')}
+>
+  <Text style={[styles.typeButtonText, newType === 'income' && { color: "#FFF" }]}>
+    Receita
+  </Text>
+</TouchableOpacity>
 
-  <TouchableOpacity 
-    style={[styles.filterButton, filter === 'income' && styles.filterButtonActive]}
-    onPress={() => setFilter('income')}
-  >
-    <Text style={[styles.filterText, filter === 'income' && styles.filterTextActive]}>Receitas</Text>
-  </TouchableOpacity>
-
-  <TouchableOpacity 
-    style={[styles.filterButton, filter === 'expense' && styles.filterButtonActive]}
-    onPress={() => setFilter('expense')}
-  >
-            <Text style={[styles.filterText, filter === 'expense' && styles.filterTextActive]}>Despesas</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-                style={[styles.typeButton, newType === 'income' && styles.typeButtonSelected]}
-                onPress={() => setNewType('income')}
-              >
-                <Text style={[styles.typeButtonText, newType === 'income' && { color: "#FFF" }]}>
-                  Receita
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.typeButton, newType === 'expense' && styles.typeButtonSelected]}
-                onPress={() => setNewType('expense')}
-              >
-                <Text style={[styles.typeButtonText, newType === 'expense' && { color: "#FFF" }]}>
-                  Despesa
-                </Text>
-              </TouchableOpacity>
-            </View>
+<TouchableOpacity
+  style={[styles.typeButton, newType === 'expense' && styles.typeButtonSelected]}
+  onPress={() => setNewType('expense')}
+>
+  <Text style={[styles.typeButtonText, newType === 'expense' && { color: "#FFF" }]}>
+    Despesa
+  </Text>
+</TouchableOpacity>
+          </View>
 
             <TouchableOpacity 
               style={[styles.button, { backgroundColor: '#311de1' }]} 
@@ -447,7 +484,7 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 16,
     fontSize: 16,
-    color: "#000"
+    color: "#000000"
   },
   typeContainer: {
     flexDirection: "row",
@@ -491,7 +528,7 @@ filterButton: {
   paddingVertical: 8,
   paddingHorizontal: 16,
   borderRadius: 20,
-  backgroundColor: '#18181B',
+  backgroundColor: '#18181b',
   borderWidth: 1,
   borderColor: '#3F3F46',
   flex: 1,
