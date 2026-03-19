@@ -17,34 +17,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (e) {
         console.error("Erro ao carregar storage", e);
       } finally {
-        // ESSENCIAL: Garante que o loading pare mesmo se houver erro ou storage vazio
         setLoading(false);
       }
     }
     loadStorageData();
   }, []);
 
+  // FUNÇÃO DE LOGIN
   async function signIn(email: string, password: string) {
     try {
-      setLoading(true); // Opcional: ativa o loading durante o processo de login
-
-      // Simulando um login (Aqui você faria a chamada para sua API no futuro)
+      setLoading(true);
       const data = { id: '1', name: 'João Pedro', email };
-
-      // Salva no storage primeiro para garantir a persistência
       await AsyncStorage.setItem("@AppFinancas:user", JSON.stringify(data));
       setUser(data);
-
-      console.log("Usuário definido no Contexto!:");
+      console.log("Login realizado!");
     } catch (error) {
       console.error("Erro ao fazer login:", error);
-
-      // Repassa o erro para o handleLogin tratar com Alert
     } finally {
       setLoading(false);
     }
   }
 
+  // FUNÇÃO DE CADASTRO
+  async function signUp(email: string, password: string, name: string) {
+    try {
+      setLoading(true);
+      const data = { id: Math.random().toString(), name, email };
+      await AsyncStorage.setItem("@AppFinancas:user", JSON.stringify(data));
+      setUser(data);
+      console.log("Cadastro realizado!");
+    } catch (error) {
+      console.error("Erro no Contexto ao cadastrar:", error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // FUNÇÃO DE LOGOUT
   async function signOut() {
     try {
       await AsyncStorage.removeItem("@AppFinancas:user");
@@ -54,8 +64,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // ÚNICO RETURN DO COMPONENTE
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );

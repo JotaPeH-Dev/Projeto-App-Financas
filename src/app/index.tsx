@@ -23,7 +23,6 @@ const loginSchema = z.object({
 
 export default function Index() {
   const { signIn } = useAuth(); // Pega a função de login do contexto
-  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<any>({});

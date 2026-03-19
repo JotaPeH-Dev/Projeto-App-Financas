@@ -3,6 +3,7 @@ import { Input } from "Components/input";
 import { Link } from "expo-router";
 import { useState } from "react";
 import {
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -12,13 +13,17 @@ import {
   View
 } from "react-native";
 import { z } from "zod";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function Signup() {
+  const { signUp } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState<any>({});
+
+  // 1. Schema de validação
   const signupSchema = z.object({
     name: z.string().min(3, "O nome deve conter no mínimo 3 caracteres"),
     email: z.string().email("E-mail inválido"),
@@ -29,39 +34,79 @@ export default function Signup() {
     path: ["confirmPassword"],
   });
 
-  function handleSignup() {
+  // 2. Função de Cadastro Única e Corrigida
+  async function handleSignup() {
+    console.log("Tentando cadastrar...");
     const result = signupSchema.safeParse({ name, email, password, confirmPassword });
+
     if (!result.success) {
       setErrors(result.error.flatten().fieldErrors);
+      console.log("Erro de validação Zod:", result.error.flatten().fieldErrors);
       return;
     }
-  }
-  return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.select({ ios: "padding", android: "height" })}>
 
+    try {
+      setErrors({});
+      // Chama a função do seu Contexto
+      await signUp(email, password, name);
+      console.log("Cadastro realizado com sucesso!");
+    } catch (error) {
+      console.log("Erro ao cadastrar:", error);
+      Alert.alert("Erro", "Não foi possível realizar o cadastro.");
+    }
+  }
+
+  return (
+    <KeyboardAvoidingView 
+      style={{ flex: 1 }} 
+      behavior={Platform.select({ ios: "padding", android: "height" })}
+    >
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ flexGrow: 1 }} 
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-
         <View style={styles.container}>
           <Image
             source={require("src/app/assets/3962434.jpg")}
             style={styles.illustration}
           />
 
-          <Text style={styles.title}>Cadastar</Text>
+          <Text style={styles.title}>Cadastrar</Text>
           <Text style={styles.subtitle}>Crie sua conta para acessar.</Text>
 
           <View style={styles.form}>
-            <Input placeholder="Nome"
-              onChangeText={setName} value={name} />
-            <Input placeholder="E-mail" keyboardType="email-address"
-              onChangeText={setEmail} value={email} />
-            <Input placeholder="Senha" secureTextEntry
-              onChangeText={setPassword} value={password} />
-            <Input placeholder="Confirmar Senha" secureTextEntry
-              onChangeText={setConfirmPassword} value={confirmPassword} />
+            <Input 
+              placeholder="Nome"
+              onChangeText={setName} 
+              value={name} 
+            />
+            {errors.name && <Text style={styles.errorText}>{errors.name[0]}</Text>}
+
+            <Input 
+              placeholder="E-mail" 
+              keyboardType="email-address"
+              onChangeText={setEmail} 
+              value={email} 
+            />
+            {errors.email && <Text style={styles.errorText}>{errors.email[0]}</Text>}
+
+            <Input 
+              placeholder="Senha" 
+              secureTextEntry
+              onChangeText={setPassword} 
+              value={password} 
+            />
+            {errors.password && <Text style={styles.errorText}>{errors.password[0]}</Text>}
+
+            <Input 
+              placeholder="Confirmar Senha" 
+              secureTextEntry
+              onChangeText={setConfirmPassword} 
+              value={confirmPassword} 
+            />
+            {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword[0]}</Text>}
+
             <Button label="Cadastrar" onPress={handleSignup} />
           </View>
 
@@ -74,7 +119,7 @@ export default function Signup() {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -91,7 +136,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontWeight: 900,
+    fontWeight: '900',
   },
   subtitle: {
     fontSize: 16,
@@ -99,6 +144,12 @@ const styles = StyleSheet.create({
   form: {
     marginTop: 24,
     gap: 12,
+  },
+  errorText: {
+    color: "#EF4444",
+    fontSize: 12,
+    marginTop: -8,
+    marginBottom: 4,
   },
   footerText: {
     textAlign: "center",
@@ -109,7 +160,4 @@ const styles = StyleSheet.create({
     color: "#032ad7",
     fontWeight: "700",
   },
-
-
-
-})
+});
