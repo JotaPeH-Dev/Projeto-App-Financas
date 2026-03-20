@@ -1,75 +1,71 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { createContext, useContext, useEffect, useState } from "react";
+// src/contexts/AuthContext.tsx
 
-export const AuthContext = createContext({} as any);
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<any>(null);
+interface AuthContextData {
+  user: any | null;
+  loading: boolean;
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextData>({} as AuthContextData);
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Carrega o usuário logado ao abrir o app
   useEffect(() => {
     async function loadStorageData() {
-      try {
-        const storageUser = await AsyncStorage.getItem("@AppFinancas:user");
-        if (storageUser) {
-          setUser(JSON.parse(storageUser));
-        }
-      } catch (e) {
-        console.error("Erro ao carregar storage", e);
-      } finally {
-        setLoading(false);
+      const storageUser = await AsyncStorage.getItem('@LoggedUser');
+      if (storageUser) {
+        setUser(JSON.parse(storageUser));
       }
+      setLoading(false);
     }
     loadStorageData();
   }, []);
 
-  // FUNÇÃO DE LOGIN
   async function signIn(email: string, password: string) {
     try {
-      setLoading(true);
-      const data = { id: '1', name: 'João Pedro', email };
-      await AsyncStorage.setItem("@AppFinancas:user", JSON.stringify(data));
-      setUser(data);
-      console.log("Login realizado!");
-    } catch (error) {
-      console.error("Erro ao fazer login:", error);
-    } finally {
-      setLoading(false);
-    }
-  }
+      // 1. Pega o usuário que foi cadastrado na tela de Signup
+      const storageUser = await AsyncStorage.getItem('@UserStorage');
+      
+      if (!storageUser) {
+        throw new Error("Nenhum usuário cadastrado.");
+      }
 
-  // FUNÇÃO DE CADASTRO
-  async function signUp(email: string, password: string, name: string) {
-    try {
-      setLoading(true);
-      const data = { id: Math.random().toString(), name, email };
-      await AsyncStorage.setItem("@AppFinancas:user", JSON.stringify(data));
-      setUser(data);
-      console.log("Cadastro realizado!");
+      const userData = JSON.parse(storageUser);
+
+      // 2. Compara e valida
+      if (userData.email === email && userData.password === password) {
+        const loggedUser = { email: userData.email, name: userData.name };
+        
+        // Salva para o useEffect acima reconhecer na próxima vez que abrir o app
+        await AsyncStorage.setItem('@LoggedUser', JSON.stringify(loggedUser));
+        
+        // Atualiza o estado global (isso dispara o redirecionamento no _layout.tsx)
+        setUser(loggedUser);
+      } else {
+        throw new Error("E-mail ou senha incorretos.");
+      }
     } catch (error) {
-      console.error("Erro no Contexto ao cadastrar:", error);
       throw error;
-    } finally {
-      setLoading(false);
     }
   }
 
-  // FUNÇÃO DE LOGOUT
   async function signOut() {
-    try {
-      await AsyncStorage.removeItem("@AppFinancas:user");
-      setUser(null);
-    } catch (error) {
-      console.error("Erro ao fazer logout:", error);
-    }
+    await AsyncStorage.removeItem('@LoggedUser');
+    setUser(null);
   }
 
-  // ÚNICO RETURN DO COMPONENTE
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );
-}
+};
 
 export const useAuth = () => useContext(AuthContext);

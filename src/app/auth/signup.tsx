@@ -1,6 +1,7 @@
+import AsyncStorage from "@react-native-async-storage/async-storage"; // Ajustado
 import { Button } from "Components/Button";
 import { Input } from "Components/input";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router"; // Importamos o useRouter
 import { useState } from "react";
 import {
   Alert,
@@ -13,10 +14,9 @@ import {
   View
 } from "react-native";
 import { z } from "zod";
-import { useAuth } from "../contexts/AuthContext";
 
 export default function Signup() {
-  const { signUp } = useAuth();
+  const router = useRouter(); // Hook para navegação no Expo Router
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -34,25 +34,51 @@ export default function Signup() {
     path: ["confirmPassword"],
   });
 
-  // 2. Função de Cadastro Única e Corrigida
-  async function handleSignup() {
-    console.log("Tentando cadastrar...");
-    const result = signupSchema.safeParse({ name, email, password, confirmPassword });
-
-    if (!result.success) {
-      setErrors(result.error.flatten().fieldErrors);
-      console.log("Erro de validação Zod:", result.error.flatten().fieldErrors);
-      return;
-    }
-
+  // 2. Função de Cadastro Corrigida
+ async function handleSignUp() {
     try {
+      console.log("1. Iniciando processo...");
       setErrors({});
-      // Chama a função do seu Contexto
-      await signUp(email, password, name);
-      console.log("Cadastro realizado com sucesso!");
-    } catch (error) {
-      console.log("Erro ao cadastrar:", error);
-      Alert.alert("Erro", "Não foi possível realizar o cadastro.");
+
+      // Pegamos os dados dos inputs
+      const data = { name, email, password, confirmPassword };
+      
+      // Validamos com o Zod
+      const validation = signupSchema.safeParse(data);
+
+      if (!validation.success) {
+        const formattedErrors = validation.error.flatten().fieldErrors;
+        setErrors(formattedErrors);
+        console.log("Erro de validação:", formattedErrors);
+        return;
+      }
+
+      console.log("2. Validado com sucesso! Salvando...");
+
+      const newUser = { email, password, name };
+
+      // 1. Salva no Storage
+      await AsyncStorage.setItem('@UserStorage', JSON.stringify(newUser));
+      console.log("3. Usuário salvo no AsyncStorage!");
+      
+      // 2. SÓ AGORA mostramos o alerta de sucesso e redirecionamos
+      Alert.alert(
+        "Sucesso", 
+        "Cadastro realizado com sucesso!", 
+        [
+          { 
+            text: "Ir para Login", 
+            onPress: () => {
+              console.log("4. Navegando para o Login...");
+              router.replace("/auth" as any); 
+            }
+          }
+        ]
+      );
+      
+    } catch (e: any) {
+      console.error("ERRO NO CADASTRO:", e);
+      Alert.alert("Erro Crítico", "Não foi possível salvar os dados.");
     }
   }
 
@@ -107,12 +133,12 @@ export default function Signup() {
             />
             {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword[0]}</Text>}
 
-            <Button label="Cadastrar" onPress={handleSignup} />
+            <Button label="Cadastrar" onPress={handleSignUp} />
           </View>
 
           <Text style={styles.footerText}>
             Já tem uma conta? {" "}
-            <Link href="/" style={styles.footerLink}>
+            <Link href="/auth" style={styles.footerLink}>
               Fazer Login.
             </Link>
           </Text>
@@ -130,9 +156,9 @@ const styles = StyleSheet.create({
   },
   illustration: {
     width: "100%",
-    height: 450,
+    height: 300, // Ajustei a altura para não empurrar o form pra fora em telas menores
     resizeMode: "contain",
-    marginTop: 62,
+    marginTop: 40,
   },
   title: {
     fontSize: 32,

@@ -1,6 +1,7 @@
+import { Redirect } from "expo-router";
 import { Button } from "Components/Button";
 import { Input } from "Components/input";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router"; // Adicionei o useRouter
 import { useState } from "react";
 import {
   Alert,
@@ -13,7 +14,7 @@ import {
   View
 } from "react-native";
 import { z } from "zod";
-import { useAuth } from "src/contexts/AuthContext";
+import { useAuth } from "src/contexts/AuthContext"; // Certifique-se que este caminho está correto
 
 // 1. Schema de validação
 const loginSchema = z.object({
@@ -22,31 +23,36 @@ const loginSchema = z.object({
 });
 
 export default function Index() {
-  const { signIn } = useAuth(); // Pega a função de login do contexto
+  const router = useRouter(); 
+  const { signIn } = useAuth(); // ESTA É A ÚNICA DECLARAÇÃO DE useAuth QUE DEVE EXISTIR AQUI
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<any>({});
 
-  // 2. Função de Login unificada
   async function handleLogin() {
-  console.log("Botão clicado!"); // LOG 1
-  const result = loginSchema.safeParse({ email, password });
+    const result = loginSchema.safeParse({ email, password });
 
-  if (!result.success) {
-    console.log("Erro de validação Zod:", result.error.flatten().fieldErrors); // LOG 2
-    const fieldErrors = result.error.flatten().fieldErrors;
-    setErrors(fieldErrors);
-  } else {
-    console.log("Validação OK! Chamando signIn..."); // LOG 3
+    // Se a validação do Zod falhar, apenas mostramos os erros na tela
+    if (!result.success) {
+      const fieldErrors = result.error.flatten().fieldErrors;
+      setErrors(fieldErrors);
+      return; // Pare aqui, não redirecione!
+    }
+
     setErrors({});
+    
     try {
+      console.log("Tentando logar com:", result.data.email);
       await signIn(result.data.email, result.data.password);
-      console.log("Função signIn finalizada!"); // LOG 4
-    } catch (error) {
-      Alert.alert("Erro", "Não foi possível realizar o login.");
+      
+      // Se o login funcionar, o AuthContext vai atualizar o estado 'user'
+      // O seu _layout.tsx vai perceber isso e te levar para a Home sozinho.
+    } catch (error: any) {
+      Alert.alert("Erro de Login", error.message || "Credenciais incorretas.");
     }
   }
-}
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -97,16 +103,19 @@ export default function Index() {
           </View>
 
           <Text style={styles.footerText}>
-            Não tem uma conta? {" "}
-            <Link href="/signup" style={styles.footerLink}>
-              Cadastre-se aqui.
-            </Link>
-          </Text>
+  Não tem uma conta? {" "}
+  {/* Certifique-se que o caminho bate com app/auth/signup.tsx */}
+  <Link href="/auth/signup" style={styles.footerLink}>
+    Cadastre-se aqui.
+  </Link>
+</Text>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
+
+// ... (seus estilos continuam iguais)
 
 const styles = StyleSheet.create({
   scrollContent: { flexGrow: 1 },
