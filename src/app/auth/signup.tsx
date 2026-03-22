@@ -1,7 +1,7 @@
-import AsyncStorage from "@react-native-async-storage/async-storage"; // Ajustado
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Button } from "Components/Button";
 import { Input } from "Components/input";
-import { Link, useRouter } from "expo-router"; // Importamos o useRouter
+import { Link, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   Alert,
@@ -16,14 +16,14 @@ import {
 import { z } from "zod";
 
 export default function Signup() {
-  const router = useRouter(); // Hook para navegação no Expo Router
+  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState<any>({});
+  const [isLoading, setIsLoading] = useState(false);
 
-  // 1. Schema de validação
   const signupSchema = z.object({
     name: z.string().min(3, "O nome deve conter no mínimo 3 caracteres"),
     email: z.string().email("E-mail inválido"),
@@ -34,54 +34,44 @@ export default function Signup() {
     path: ["confirmPassword"],
   });
 
-  // 2. Função de Cadastro Corrigida
- async function handleSignUp() {
+  async function handleSignup() {
+    console.log("1. Iniciando processo...");
+    const validation = signupSchema.safeParse({ name, email, password, confirmPassword });
+
+    if (!validation.success) {
+      console.log("2. Erro de validação:", validation.error.flatten().fieldErrors);
+      setErrors(validation.error.flatten().fieldErrors);
+      return;
+    }
+
     try {
-      console.log("1. Iniciando processo...");
-      setErrors({});
+      setIsLoading(true);
+      const userData = { 
+        name: validation.data.name, 
+        email: validation.data.email, 
+        password: validation.data.password 
+      };
 
-      // Pegamos os dados dos inputs
-      const data = { name, email, password, confirmPassword };
-      
-      // Validamos com o Zod
-      const validation = signupSchema.safeParse(data);
+      await AsyncStorage.setItem('@UserStorage', JSON.stringify(userData));
+      console.log("4. Salvo no AsyncStorage!");
 
-      if (!validation.success) {
-        const formattedErrors = validation.error.flatten().fieldErrors;
-        setErrors(formattedErrors);
-        console.log("Erro de validação:", formattedErrors);
-        return;
+      if (Platform.OS === 'web') {
+        alert("Conta criada com sucesso!");
+        router.replace("/auth");
+      } else {
+        Alert.alert("Sucesso", "Conta criada com sucesso!", [
+          { text: "OK", onPress: () => router.replace("/auth") }
+        ]);
       }
-
-      console.log("2. Validado com sucesso! Salvando...");
-
-      const newUser = { email, password, name };
-
-      // 1. Salva no Storage
-      await AsyncStorage.setItem('@UserStorage', JSON.stringify(newUser));
-      console.log("3. Usuário salvo no AsyncStorage!");
-      
-      // 2. SÓ AGORA mostramos o alerta de sucesso e redirecionamos
-      Alert.alert(
-        "Sucesso", 
-        "Cadastro realizado com sucesso!", 
-        [
-          { 
-            text: "Ir para Login", 
-            onPress: () => {
-              console.log("4. Navegando para o Login...");
-              router.replace("/auth" as any); 
-            }
-          }
-        ]
-      );
-      
-    } catch (e: any) {
-      console.error("ERRO NO CADASTRO:", e);
-      Alert.alert("Erro Crítico", "Não foi possível salvar os dados.");
+    } catch (error) {
+      console.log("ERRO:", error);
+      alert("Falha ao cadastrar.");
+    } finally {
+      setIsLoading(false);
     }
   }
 
+  // O RETURN PRECISA ESTAR AQUI DENTRO!
   return (
     <KeyboardAvoidingView 
       style={{ flex: 1 }} 
@@ -94,7 +84,7 @@ export default function Signup() {
       >
         <View style={styles.container}>
           <Image
-            source={require("src/app/assets/3962434.jpg")}
+            source={require("../assets/3962434.jpg")} // Caminho relativo ajustado
             style={styles.illustration}
           />
 
@@ -133,7 +123,11 @@ export default function Signup() {
             />
             {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword[0]}</Text>}
 
-            <Button label="Cadastrar" onPress={handleSignUp} />
+            <Button 
+              label={isLoading ? "Carregando..." : "Cadastrar"} 
+              onPress={handleSignup} 
+              disabled={isLoading} 
+            />
           </View>
 
           <Text style={styles.footerText}>
@@ -156,9 +150,9 @@ const styles = StyleSheet.create({
   },
   illustration: {
     width: "100%",
-    height: 300, // Ajustei a altura para não empurrar o form pra fora em telas menores
+    height: 250,
     resizeMode: "contain",
-    marginTop: 40,
+    marginTop: 20,
   },
   title: {
     fontSize: 32,

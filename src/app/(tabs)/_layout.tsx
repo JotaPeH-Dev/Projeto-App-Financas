@@ -2,6 +2,7 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { AuthProvider, useAuth } from "src/contexts/AuthContext";
+import { Redirect } from "expo-router";
 
 function MainLayout() {
   const { user, loading } = useAuth();

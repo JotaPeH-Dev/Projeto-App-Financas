@@ -1,10 +1,9 @@
-import { Redirect } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Button } from "Components/Button";
 import { Input } from "Components/input";
-import { Link, useRouter } from "expo-router"; // Adicionei o useRouter
+import { Link, Redirect, useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -13,8 +12,8 @@ import {
   Text,
   View
 } from "react-native";
+import { useAuth } from "src/contexts/AuthContext";
 import { z } from "zod";
-import { useAuth } from "src/contexts/AuthContext"; // Certifique-se que este caminho está correto
 
 // 1. Schema de validação
 const loginSchema = z.object({
@@ -23,33 +22,48 @@ const loginSchema = z.object({
 });
 
 export default function Index() {
-  const router = useRouter(); 
-  const { signIn } = useAuth(); // ESTA É A ÚNICA DECLARAÇÃO DE useAuth QUE DEVE EXISTIR AQUI
-  
+  const router = useRouter();
+  const { signIn, user } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<any>({});
+  const [isLoading, setIsLoading] = useState(false);
+
+  // 1. Se o usuário já estiver logado, redireciona IMEDIATAMENTE antes de carregar o resto
+  if (user) {
+    return <Redirect href="/tabs/home" />;
+  }
 
   async function handleLogin() {
-    const result = loginSchema.safeParse({ email, password });
-
-    // Se a validação do Zod falhar, apenas mostramos os erros na tela
-    if (!result.success) {
-      const fieldErrors = result.error.flatten().fieldErrors;
-      setErrors(fieldErrors);
-      return; // Pare aqui, não redirecione!
-    }
-
-    setErrors({});
-    
     try {
-      console.log("Tentando logar com:", result.data.email);
-      await signIn(result.data.email, result.data.password);
-      
-      // Se o login funcionar, o AuthContext vai atualizar o estado 'user'
-      // O seu _layout.tsx vai perceber isso e te levar para a Home sozinho.
-    } catch (error: any) {
-      Alert.alert("Erro de Login", error.message || "Credenciais incorretas.");
+      setIsLoading(true);
+      console.log("Iniciando tentativa de login...");
+
+      // 1. Busca a string do usuário salvo no AsyncStorage
+      const storageData = await AsyncStorage.getItem('@UserStorage');
+
+      if (!storageData) {
+        alert("Nenhum usuário encontrado. Por favor, cadastre-se primeiro.");
+        return;
+      }
+
+      // 2. Converte de volta para um objeto JavaScript
+      const savedUser = JSON.parse(storageData);
+      console.log("Dados recuperados para comparação:", savedUser.email);
+
+      // 3. Valida se o que foi digitado agora é igual ao que salvamos no cadastro
+      if (email === savedUser.email && password === savedUser.password) {
+        console.log("LOGIN CORRETO! Tentando mudar de tela..."); // <--- Adicione isso
+        router.push("/tabs/home");
+      } else {
+        alert("E-mail ou senha incorretos.");
+      }
+
+    } catch (error) {
+      console.log("Erro ao acessar o storage no Login:", error);
+      alert("Ocorreu um problema técnico ao entrar.");
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -65,7 +79,8 @@ export default function Index() {
       >
         <View style={styles.container}>
           <Image
-            source={require("src/app/assets/9518505.jpg")}
+            source={require("../assets/9518505.jpg")}
+            resizeMode="contain"
             style={styles.illustration}
           />
 
@@ -99,26 +114,29 @@ export default function Index() {
             />
             {errors.password && <Text style={styles.errorText}>{errors.password[0]}</Text>}
 
-            <Button label="Entrar" onPress={handleLogin} />
+            <Button
+              label={isLoading ? "Carregando..." : "Entrar"}
+              onPress={handleLogin}
+              disabled={isLoading}
+            />
           </View>
 
           <Text style={styles.footerText}>
-  Não tem uma conta? {" "}
-  {/* Certifique-se que o caminho bate com app/auth/signup.tsx */}
-  <Link href="/auth/signup" style={styles.footerLink}>
-    Cadastre-se aqui.
-  </Link>
-</Text>
+            Não tem uma conta?{" "}
+            <Link href="/auth/signup" style={styles.footerLink}>
+              Cadastre-se aqui.
+            </Link>
+          </Text>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-// ... (seus estilos continuam iguais)
-
 const styles = StyleSheet.create({
-  scrollContent: { flexGrow: 1 },
+  scrollContent: {
+    flexGrow: 1
+  },
   container: {
     flex: 1,
     backgroundColor: "#F4F4F5",
@@ -128,18 +146,37 @@ const styles = StyleSheet.create({
   illustration: {
     width: "100%",
     height: 250,
-    resizeMode: "contain",
   },
-  header: { marginTop: 20 },
-  title: { fontSize: 32, fontWeight: 'bold', color: "#1A1A1E" },
-  subtitle: { fontSize: 16, color: "#71717A", marginTop: 4 },
-  form: { marginTop: 32, gap: 16 },
+  header: {
+    marginTop: 20
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: "#1A1A1E"
+  },
+  subtitle: {
+    fontSize: 16,
+    color: "#71717A",
+    marginTop: 4
+  },
+  form: {
+    marginTop: 32,
+    gap: 16
+  },
   errorText: {
     color: "#EF4444",
     fontSize: 12,
     marginTop: -12,
     marginBottom: 4,
   },
-  footerText: { textAlign: "center", marginTop: 32, color: "#585860" },
-  footerLink: { color: "#032ad7", fontWeight: "700" },
+  footerText: {
+    textAlign: "center",
+    marginTop: 32,
+    color: "#585860"
+  },
+  footerLink: {
+    color: "#032ad7",
+    fontWeight: "700"
+  },
 });
