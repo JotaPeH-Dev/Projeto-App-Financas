@@ -1,6 +1,5 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Button } from "Components/Button";
-import { Input } from "Components/input";
+import { Button } from "@/Components/Button";
+import { Input } from "@/Components/input";
 import { Link, useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -14,9 +13,11 @@ import {
   View
 } from "react-native";
 import { z } from "zod";
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function Signup() {
   const router = useRouter();
+  const { signUp } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -46,15 +47,12 @@ export default function Signup() {
 
     try {
       setIsLoading(true);
-      const userData = { 
-        name: validation.data.name, 
-        email: validation.data.email, 
-        password: validation.data.password 
-      };
+      console.log("3. Chamando signUp do contexto...");
 
-      await AsyncStorage.setItem('@UserStorage', JSON.stringify(userData));
-      console.log("4. Salvo no AsyncStorage!");
+      // Usar a função signUp do contexto que agora salva no SQLite
+      await signUp(validation.data.name, validation.data.email, validation.data.password);
 
+      console.log("4. Usuário criado com sucesso!");
       if (Platform.OS === 'web') {
         alert("Conta criada com sucesso!");
         router.replace("/auth");
@@ -63,9 +61,13 @@ export default function Signup() {
           { text: "OK", onPress: () => router.replace("/auth") }
         ]);
       }
-    } catch (error) {
-      console.log("ERRO:", error);
-      alert("Falha ao cadastrar.");
+    } catch (error: any) {
+      console.log("ERRO:", error.message);
+      if (Platform.OS === 'web') {
+        alert(error.message);
+      } else {
+        Alert.alert("Erro", error.message);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -73,12 +75,12 @@ export default function Signup() {
 
   // O RETURN PRECISA ESTAR AQUI DENTRO!
   return (
-    <KeyboardAvoidingView 
-      style={{ flex: 1 }} 
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
       behavior={Platform.select({ ios: "padding", android: "height" })}
     >
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }} 
+        contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -92,41 +94,41 @@ export default function Signup() {
           <Text style={styles.subtitle}>Crie sua conta para acessar.</Text>
 
           <View style={styles.form}>
-            <Input 
+            <Input
               placeholder="Nome"
-              onChangeText={setName} 
-              value={name} 
+              onChangeText={setName}
+              value={name}
             />
             {errors.name && <Text style={styles.errorText}>{errors.name[0]}</Text>}
 
-            <Input 
-              placeholder="E-mail" 
+            <Input
+              placeholder="E-mail"
               keyboardType="email-address"
-              onChangeText={setEmail} 
-              value={email} 
+              onChangeText={setEmail}
+              value={email}
             />
             {errors.email && <Text style={styles.errorText}>{errors.email[0]}</Text>}
 
-            <Input 
-              placeholder="Senha" 
+            <Input
+              placeholder="Senha"
               secureTextEntry
-              onChangeText={setPassword} 
-              value={password} 
+              onChangeText={setPassword}
+              value={password}
             />
             {errors.password && <Text style={styles.errorText}>{errors.password[0]}</Text>}
 
-            <Input 
-              placeholder="Confirmar Senha" 
+            <Input
+              placeholder="Confirmar Senha"
               secureTextEntry
-              onChangeText={setConfirmPassword} 
-              value={confirmPassword} 
+              onChangeText={setConfirmPassword}
+              value={confirmPassword}
             />
             {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword[0]}</Text>}
 
-            <Button 
-              label={isLoading ? "Carregando..." : "Cadastrar"} 
-              onPress={handleSignup} 
-              disabled={isLoading} 
+            <Button
+              label={isLoading ? "Carregando..." : "Cadastrar"}
+              onPress={handleSignup}
+              disabled={isLoading}
             />
           </View>
 

@@ -1,6 +1,5 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Button } from "Components/Button";
-import { Input } from "Components/input";
+import { Button } from "@/Components/Button";
+import { Input } from "@/Components/input";
 import { Link, Redirect, useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -12,8 +11,8 @@ import {
   Text,
   View
 } from "react-native";
-import { useAuth } from "src/contexts/AuthContext";
 import { z } from "zod";
+import { useAuth } from "../../contexts/AuthContext";
 
 // 1. Schema de validação
 const loginSchema = z.object({
@@ -29,39 +28,26 @@ export default function Index() {
   const [errors, setErrors] = useState<any>({});
   const [isLoading, setIsLoading] = useState(false);
 
+
   // 1. Se o usuário já estiver logado, redireciona IMEDIATAMENTE antes de carregar o resto
   if (user) {
-    return <Redirect href="/tabs/home" />;
+    return <Redirect href="/(tabs)/home" />;
   }
 
   async function handleLogin() {
     try {
       setIsLoading(true);
-      console.log("Iniciando tentativa de login...");
+      console.log("Chamando o signIn do contexto...");
 
-      // 1. Busca a string do usuário salvo no AsyncStorage
-      const storageData = await AsyncStorage.getItem('@UserStorage');
+      // O signIn do contexto agora busca no SQLite
+      await signIn(email, password);
 
-      if (!storageData) {
-        alert("Nenhum usuário encontrado. Por favor, cadastre-se primeiro.");
-        return;
-      }
+      console.log("Login realizado com sucesso!");
+      // O redirecionamento é feito automaticamente pelo _layout.tsx
 
-      // 2. Converte de volta para um objeto JavaScript
-      const savedUser = JSON.parse(storageData);
-      console.log("Dados recuperados para comparação:", savedUser.email);
-
-      // 3. Valida se o que foi digitado agora é igual ao que salvamos no cadastro
-      if (email === savedUser.email && password === savedUser.password) {
-        console.log("LOGIN CORRETO! Tentando mudar de tela..."); // <--- Adicione isso
-        router.push("/tabs/home");
-      } else {
-        alert("E-mail ou senha incorretos.");
-      }
-
-    } catch (error) {
-      console.log("Erro ao acessar o storage no Login:", error);
-      alert("Ocorreu um problema técnico ao entrar.");
+    } catch (error: any) {
+      console.log("Erro no Login:", error.message);
+      alert(error.message);
     } finally {
       setIsLoading(false);
     }

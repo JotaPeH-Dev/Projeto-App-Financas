@@ -1,59 +1,89 @@
-// src/contexts/AuthContext.tsx
-
-import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { createUser, getUserByEmail, initDatabase, User } from '../database/database';
 
 interface AuthContextData {
-  user: any | null;
+  user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  signUp: (name: string, email: string, password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<any | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Carrega o usuário logado ao abrir o app
   useEffect(() => {
-    async function loadStorageData() {
-      const storageUser = await AsyncStorage.getItem('@LoggedUser');
-      if (storageUser) {
-        setUser(JSON.parse(storageUser));
+    async function initializeAndLoadUser() {
+      try {
+        // Inicializar banco de dados
+        await initDatabase();
+
+        // Carregar usuário logado
+        const loggedUserData = await AsyncStorage.getItem('@LoggedUser');
+        if (loggedUserData) {
+          const loggedUser = JSON.parse(loggedUserData);
+          // Buscar dados completos do usuário no banco
+          const fullUserData = await getUserByEmail(loggedUser.email);
+          if (fullUserData) {
+            setUser(fullUserData);
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao inicializar:', error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
-    loadStorageData();
+
+    initializeAndLoadUser();
   }, []);
 
-  async function signIn(email: string, password: string) {
-    try {
-      // 1. Pega o usuário que foi cadastrado na tela de Signup
-      const storageUser = await AsyncStorage.getItem('@UserStorage');
-      
-      if (!storageUser) {
-        throw new Error("Nenhum usuário cadastrado.");
-      }
-
-      const userData = JSON.parse(storageUser);
-
-      // 2. Compara e valida
-      if (userData.email === email && userData.password === password) {
-        const loggedUser = { email: userData.email, name: userData.name };
-        
-        // Salva para o useEffect acima reconhecer na próxima vez que abrir o app
-        await AsyncStorage.setItem('@LoggedUser', JSON.stringify(loggedUser));
-        
-        // Atualiza o estado global (isso dispara o redirecionamento no _layout.tsx)
-        setUser(loggedUser);
-      } else {
-        throw new Error("E-mail ou senha incorretos.");
-      }
-    } catch (error) {
-      throw error;
+  async function signUp(name: string, email: string, password: string) {
+    // Verificar se usuário já existe
+    const existingUser = await getUserByEmail(email);
+    if (existingUser) {
+      throw new Error("E-mail já cadastrado.");
     }
+
+    // Criar usuário no banco
+    const userId = await createUser({
+      name,
+      email,
+      password,
+      is_admin: false // Primeiro usuário pode ser admin se quiser
+    });
+
+    // Buscar dados do usuário criado
+    const newUser = await getUserByEmail(email);
+    if (newUser) {
+      await AsyncStorage.setItem('@LoggedUser', JSON.stringify({
+        email: newUser.email,
+        name: newUser.name
+      }));
+      setUser(newUser);
+    }
+  }
+
+  async function signIn(email: string, password: string) {
+    const userData = await getUserByEmail(email);
+    if (!userData) {
+      throw new Error("Usuário não encontrado.");
+    }
+
+    if (userData.password !== password) {
+      throw new Error("Senha incorreta.");
+    }
+
+    // Salvar sessão
+    await AsyncStorage.setItem('@LoggedUser', JSON.stringify({
+      email: userData.email,
+      name: userData.name
+    }));
+    setUser(userData);
   }
 
   async function signOut() {
@@ -62,7 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signOut, signUp }}>
       {children}
     </AuthContext.Provider>
   );

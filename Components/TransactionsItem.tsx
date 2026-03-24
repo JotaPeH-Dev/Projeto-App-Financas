@@ -1,27 +1,31 @@
-import { View, Text, StyleSheet } from "react-native";
-import { string } from "zod";
+import { Ionicons } from "@expo/vector-icons";
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface TransactionItemProps {
-  label: string;
-  value: number;
-  type: "income" | "expense";
-  date: string;
+  data: {
+    label: string;
+    value: number;
+    type: 'income' | 'expense' | 'create';
+    date: string;
+  };
+  onDelete: () => void;
 }
 
-export default function TransactionItem({ label, value, type, date }: TransactionItemProps) {
+export default function TransactionsItem({ data, onDelete }: TransactionItemProps) {
   return (
-    <View style={styles.container}>
-      <View style={styles.info}>
-        <Text style={styles.label}>{label}</Text>
-        <Text style={styles.date}>{date}</Text>
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 15, backgroundColor: '#FFF', marginBottom: 10, borderRadius: 12 }}>
+      <View>
+        <Text style={{ fontWeight: 'bold' }}>{data.label}</Text>
+        <Text style={{ color: '#71717A', fontSize: 12 }}>{data.date}</Text>
       </View>
-
-      <Text style={[
-        styles.value, 
-        {color: type === "income" ? "#10B981" : "#EF4444"} // Verde para receitas, vermelho para despesas
-      ]}>
-        {type === "income" ? "+" : "-"}{value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-      </Text>
+      <View style={{ alignItems: 'flex-end' }}>
+        <Text style={{ color: data.type === 'income' ? '#311de1' : '#EF4444' }}>
+          {data.type === 'income' ? '+' : '-'} R$ {data.value.toFixed(2)}
+        </Text>
+        <TouchableOpacity onPress={onDelete}>
+          <Ionicons name="trash-outline" size={18} color="#EF4444" />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
