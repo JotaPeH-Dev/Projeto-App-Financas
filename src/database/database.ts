@@ -61,20 +61,18 @@ interface UserRow {
 }
 
 // Inicializar tabelas
-export const initDatabase = () => {
+export const initDatabase = async () => {
+  if (isWeb) {
+    console.warn('SQLite não está disponível no web. Usando modo de compatibilidade somente leitura.');
+    return;
+  }
+
+  const database = await openDb();
+  if (!database) throw new Error('Banco de dados não inicializado.');
+
   return new Promise<void>((resolve, reject) => {
-    if (isWeb) {
-      console.warn('SQLite não está disponível no web. Usando modo de compatibilidade somente leitura.');
-      resolve();
-      return;
-    }
-
-    if (!db) {
-      reject(new Error('Banco de dados não inicializado.'));
-      return;
-    }
-
     try {
+      db = database;
       // Criar tabela de usuários
       db.runSync(
         `CREATE TABLE IF NOT EXISTS users (
