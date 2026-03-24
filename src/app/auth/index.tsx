@@ -1,7 +1,7 @@
 import { Button } from "@/Components/Button";
 import { Input } from "@/Components/input";
 import { Link, Redirect, useRouter } from "expo-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Image,
   KeyboardAvoidingView,
@@ -13,6 +13,8 @@ import {
 } from "react-native";
 import { z } from "zod";
 import { useAuth } from "../../contexts/AuthContext";
+import { initDatabase } from "@/src/database/database";
+import * as SQLite from "expo-sqlite";
 
 // 1. Schema de validação
 const loginSchema = z.object({
@@ -27,32 +29,52 @@ export default function Index() {
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<any>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [dbReady, setDbReady] = useState(false);
 
+  useEffect(() => {
+    async function setup() {
+      try {
+        await initDatabase ();
+        setDbReady(true);
+      } catch (e) {
+        console.error("Erro ao inicializar banco", e);
+      }
+    }
+    setup();
+  },[]);
 
-  // 1. Se o usuário já estiver logado, redireciona IMEDIATAMENTE antes de carregar o resto
+  // 1. Verificação de carregamento do banco
+  if (!dbReady) return null;
+
+  // 2. Redirecionamento se já estiver logado (fora de qualquer return JSX)
   if (user) {
-    return <Redirect href="/tabs/home" />;
+    return <Redirect href="/(tabs)/home" />;
   }
 
   async function handleLogin() {
     try {
       setIsLoading(true);
-      console.log("Chamando o signIn do contexto...");
+      // Validação com Zod antes de chamar o signIn
+      const validation = loginSchema.safeParse({ email, password });
+      
+      if (!validation.success) {
+        const fieldErrors = validation.error.flatten().fieldErrors;
+        setErrors(fieldErrors);
+        return;
+      }
 
-      // O signIn do contexto agora busca no SQLite
       await signIn(email, password);
-
       console.log("Login realizado com sucesso!");
-      // O redirecionamento é feito automaticamente pelo _layout.tsx
 
     } catch (error: any) {
       console.log("Erro no Login:", error.message);
-      alert(error.message);
+      alert("E-mail ou senha incorretos.");
     } finally {
       setIsLoading(false);
     }
   }
 
+  // 3. O Return do JSX começa aqui
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}

@@ -1,98 +1,63 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { createUser, getUserByEmail, initDatabase, User } from '../database/database';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { getUserByEmail, createUser, User, initDatabase } from "../database/database";
 
 interface AuthContextData {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signOut: () => Promise<void>;
   signUp: (name: string, email: string, password: string) => Promise<void>;
+  signOut: () => void;
 }
 
-const AuthContext = createContext<AuthContextData>({} as AuthContextData);
+export const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function initializeAndLoadUser() {
+    async function setup() {
       try {
-        // Inicializar banco de dados
+        // Inicializa o banco de dados antes de qualquer coisa
         await initDatabase();
-
-        // Carregar usuário logado
-        const loggedUserData = await AsyncStorage.getItem('@LoggedUser');
-        if (loggedUserData) {
-          const loggedUser = JSON.parse(loggedUserData);
-          // Buscar dados completos do usuário no banco
-          const fullUserData = await getUserByEmail(loggedUser.email);
-          if (fullUserData) {
-            setUser(fullUserData);
-          }
-        }
-      } catch (error) {
-        console.error('Erro ao inicializar:', error);
+        // Aqui você poderia carregar um usuário salvo no Storage (opcional)
+      } catch (e) {
+        console.error("Erro ao inicializar:", e);
       } finally {
         setLoading(false);
       }
     }
-
-    initializeAndLoadUser();
+    setup();
   }, []);
 
+  async function signIn(email: string, password: string) {
+    const foundUser = await getUserByEmail(email);
+    if (!foundUser || foundUser.password !== password) {
+      throw new Error("E-mail ou senha inválidos.");
+    }
+    setUser(foundUser);
+  }
+
   async function signUp(name: string, email: string, password: string) {
-    // Verificar se usuário já existe
-    const existingUser = await getUserByEmail(email);
-    if (existingUser) {
-      throw new Error("E-mail já cadastrado.");
+    const userExists = await getUserByEmail(email);
+    if (userExists) {
+      throw new Error("Este e-mail já está cadastrado.");
     }
 
-    // Criar usuário no banco
-    const userId = await createUser({
+    await createUser({
       name,
       email,
       password,
-      is_admin: false // Primeiro usuário pode ser admin se quiser
+      is_admin: false
     });
-
-    // Buscar dados do usuário criado
-    const newUser = await getUserByEmail(email);
-    if (newUser) {
-      await AsyncStorage.setItem('@LoggedUser', JSON.stringify({
-        email: newUser.email,
-        name: newUser.name
-      }));
-      setUser(newUser);
-    }
   }
 
-  async function signIn(email: string, password: string) {
-    const userData = await getUserByEmail(email);
-    if (!userData) {
-      throw new Error("Usuário não encontrado.");
-    }
-
-    if (userData.password !== password) {
-      throw new Error("Senha incorreta.");
-    }
-
-    // Salvar sessão
-    await AsyncStorage.setItem('@LoggedUser', JSON.stringify({
-      email: userData.email,
-      name: userData.name
-    }));
-    setUser(userData);
-  }
-
-  async function signOut() {
-    await AsyncStorage.removeItem('@LoggedUser');
+  function signOut() {
     setUser(null);
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signOut, signUp }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );
