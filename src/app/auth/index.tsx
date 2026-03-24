@@ -31,7 +31,7 @@ export default function Index() {
 
   // 1. Se o usuário já estiver logado, redireciona IMEDIATAMENTE antes de carregar o resto
   if (user) {
-    return <Redirect href="/(tabs)/home" />;
+    return <Redirect href="/tabs/home" />;
   }
 
   async function handleLogin() {
