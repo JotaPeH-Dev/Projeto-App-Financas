@@ -17,13 +17,13 @@ import { useAuth } from "../../contexts/AuthContext";
 
 export default function Signup() {
   const router = useRouter();
-  const { signUp } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState<any>({});
   const [isLoading, setIsLoading] = useState(false);
+  const {signUp} = useAuth();
 
   const signupSchema = z.object({
     name: z.string().min(3, "O nome deve conter no mínimo 3 caracteres"),
@@ -35,39 +35,23 @@ export default function Signup() {
     path: ["confirmPassword"],
   });
 
-  async function handleSignup() {
-    console.log("1. Iniciando processo...");
+async function handleSignup() {
     const validation = signupSchema.safeParse({ name, email, password, confirmPassword });
 
     if (!validation.success) {
-      console.log("2. Erro de validação:", validation.error.flatten().fieldErrors);
       setErrors(validation.error.flatten().fieldErrors);
       return;
     }
 
     try {
       setIsLoading(true);
-      console.log("3. Chamando signUp do contexto...");
+      await signUp(name, email, password);
 
-      // Usar a função signUp do contexto que agora salva no SQLite
-      await signUp(validation.data.name, validation.data.email, validation.data.password);
-
-      console.log("4. Usuário criado com sucesso!");
-      if (Platform.OS === 'web') {
-        alert("Conta criada com sucesso!");
-        router.replace("/auth");
-      } else {
-        Alert.alert("Sucesso", "Conta criada com sucesso!", [
-          { text: "OK", onPress: () => router.replace("/auth") }
-        ]);
-      }
+      Alert.alert("Sucesso", "Conta criada com sucesso!", [
+        { text: "OK", onPress: () => router.replace("/auth") }
+      ]);
     } catch (error: any) {
-      console.log("ERRO:", error.message);
-      if (Platform.OS === 'web') {
-        alert(error.message);
-      } else {
-        Alert.alert("Erro", error.message);
-      }
+      Alert.alert("Erro", error.message);
     } finally {
       setIsLoading(false);
     }

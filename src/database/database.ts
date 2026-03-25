@@ -1,8 +1,9 @@
 import { Platform } from 'react-native';
+import * as SQLite from 'expo-sqlite'
 
 const isWeb = Platform.OS === 'web';
 
-let db: any = null;
+let db: SQLite.SQLiteDatabase | null = null;
 
 async function openDb() {
   if (isWeb) return null;
@@ -484,7 +485,7 @@ export const getUserStats = (userId: number) => {
           COALESCE(SUM(CASE WHEN type = 'income' THEN value ELSE 0 END), 0) as total_income,
           COALESCE(SUM(CASE WHEN type = 'expense' THEN value ELSE 0 END), 0) as total_expense,
           COUNT(*) as transaction_count
-         FROM transactions WHERE user_id = ?;`,
+          FROM transactions WHERE user_id = ?;`,
         [userId]
       ) as StatsRow | null;
       if (statsRow) {
@@ -547,3 +548,9 @@ export const closeDatabase = () => {
 };
 
 export default db;
+
+export async function getDatabase() {
+  if (db) return db;
+  db = await SQLite.openDatabaseAsync('financas.db');
+  return db;
+}

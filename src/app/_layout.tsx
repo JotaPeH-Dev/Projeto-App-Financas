@@ -14,17 +14,15 @@ function RootLayoutNav() {
     const inAuthGroup = segments[0] === "auth";
 
     if (!user && !inAuthGroup) {
-      // Se não tem usuário e não está no auth, vai para login
       router.replace("/auth");
     } else if (user && inAuthGroup) {
-      // Se tem usuário e está no auth, vai para home
       router.replace("/(tabs)/home");
     }
   }, [user, loading, segments]);
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#F4F4F5" }}>
         <ActivityIndicator size="large" color="#311de1" />
       </View>
     );

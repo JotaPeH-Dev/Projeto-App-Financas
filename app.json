@@ -1,39 +1,30 @@
 {
   "expo": {
-    "name": "my-app",
-    "slug": "my-app",
+    "name": "Projeto-App-Financas",
+    "slug": "projeto-app-financas",
     "version": "1.0.0",
+    "sdkVersion": "54.0.0", 
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "projeto-financas",
     "userInterfaceStyle": "automatic",
-    "splash": {
-      "image": "./assets/images/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.joaopedro.financas"
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "foregroundImage": "./assets/images/android-icon-foreground.png"
       },
-      "predictiveBackGestureEnabled": false
+      "package": "com.joaopedro.financas"
     },
     "web": {
       "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "output": "static"
     },
     "plugins": [
-      "expo-router",
-      "expo-font",
-      "expo-sqlite",
-      "expo-web-browser"
+      "expo-router"
     ],
     "experiments": {
       "typedRoutes": true
