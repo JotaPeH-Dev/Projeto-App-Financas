@@ -1,25 +1,7 @@
 import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Modal,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
-} from "react-native";
+import { View, Text, FlatList, StyleSheet, ActivityIndicator,TouchableOpacity } from "react-native";
 import { useAuth } from "../../contexts/AuthContext";
-import {
-  deleteTransaction,
-  addTransaction,
-  getTransactionsByUser,
-  getUserStats, // Certifique-se que esta função existe no seu database.ts
-  Transaction
-} from "../../database/database";
-import { Ionicons } from '@expo/vector-icons';
-import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { getTransactionsByUser, getUserStats, Transaction } from "../../database/database";
 
 export default function Home() {
   const { user } = useAuth();
@@ -28,27 +10,27 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
 
-  // Estados do Formulário
-  const [label, setLabel] = useState("");
-  const [value, setValue] = useState("");
-  const [type, setType] = useState<'income' | 'expense'>('income');
+  
+  useEffect(() => {
+    async function loadData() {
+      if (!user?.id) return;
 
-  async function loadData() {
-    if (!user?.id) return;
-    try {
-      setLoading(true);
-      const [userTransactions, userStats] = await Promise.all([
-        getTransactionsByUser(user.id),
-        getUserStats(user.id)
-      ]);
-      setTransactions(userTransactions);
-      setStats(userStats);
-    } catch (error) {
-      console.error("Erro ao carregar dados:", error);
-    } finally {
-      setLoading(false);
+      try {
+        setLoading(true);
+        // Busca as transações e estatísticas em paralelo
+        const [userTransactions, userStats] = await Promise.all([
+          getTransactionsByUser(user.id),
+          getUserStats(user.id)
+        ]);
+
+        setTransactions(userTransactions);
+        setStats(userStats);
+      } catch (error) {
+        console.error("Erro ao carregar dados da Home:", error);
+      } finally {
+        setLoading(false);
+      }
     }
-  }
 
   useEffect(() => {
     loadData();
@@ -103,10 +85,15 @@ export default function Home() {
   if (loading) {
     return <ActivityIndicator style={{ flex: 1 }} size="large" color="#032ad7" />;
   }
-
+  <TouchableOpacity 
+  style={styles.fab} 
+  onPress={() => setModalVisible(true)}
+>
+  <Text style={styles.fabIcon}>+</Text>
+  </TouchableOpacity>
   return (
     <View style={styles.container}>
-      {/* Cabeçalho e Resumo (Mantidos) */}
+      {/* Header com Nome do Usuário */}
       <View style={styles.header}>
         <Text style={styles.greeting}>Olá, {user?.name}!</Text>
         <Text style={styles.balanceLabel}>Seu saldo atual:</Text>
@@ -115,6 +102,7 @@ export default function Home() {
         </Text>
       </View>
 
+      {/* Resumo (Entradas/Saídas) */}
       <View style={styles.summaryContainer}>
         <View style={styles.summaryItem}>
           <Text style={styles.incomeText}>Entradas</Text>
@@ -129,145 +117,77 @@ export default function Home() {
       <Text style={styles.listTitle}>Atividades recentes</Text>
 
       <FlatList
-  data={transactions}
-  keyExtractor={(item) => item.id!.toString()}
-  renderItem={({ item }) => (
-    /* 1. O Swipeable envolve todo o conteúdo do item */
-    <Swipeable
-      overshootRight={false}
-      renderRightActions={() => (
-        /* 2. Este é o botão que aparece ao deslizar da direita para a esquerda */
-        <TouchableOpacity 
-          style={styles.deleteButton} 
-          onPress={() => handleDelete(item.id!)}
-        >
-          <Text style={styles.deleteText}>Excluir</Text>
-        </TouchableOpacity>
-      )}
-    >
-      /* 3. Seu código original do card de transação */
-      <View style={styles.transactionItem}>
-        <Text style={styles.transactionLabel}>{item.label}</Text>
-        <Text style={item.type === 'income' ? styles.incomeText : styles.expenseText}>
-          {item.type === 'income' ? '+' : '-'} R$ {item.value.toFixed(2)}
-        </Text>
-      </View>
-    </Swipeable>
-  )}
-  ListEmptyComponent={<Text style={styles.emptyText}>Nenhuma transação encontrada.</Text>}
-/>
-
-      {/* MODAL DE CADASTRO */}
-      <Modal visible={modalVisible} animationType="fade" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Nova Transação</Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Descrição (ex: Aluguel)"
-              value={label}
-              onChangeText={setLabel}
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="Valor (ex: 150.00)"
-              keyboardType="numeric"
-              value={value}
-              onChangeText={setValue}
-            />
-
-            <View style={styles.typeContainer}>
-              <TouchableOpacity
-                style={[styles.typeBtn, type === 'income' && styles.typeBtnSelected]}
-                onPress={() => setType('income')}
-              >
-                <Text>Entrada</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.typeBtn, type === 'expense' && styles.typeBtnSelectedExpense]}
-                onPress={() => setType('expense')}
-              >
-                <Text>Saída</Text>
-              </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-              <Text style={{ color: '#FFF', fontWeight: 'bold' }}>Salvar</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => setModalVisible(false)}>
-              <Text style={{ color: '#71717A', marginTop: 15 }}>Cancelar</Text>
-            </TouchableOpacity>
+        data={transactions}
+        keyExtractor={(item) => item.id!.toString()}
+        renderItem={({ item }) => (
+          <View style={styles.transactionItem}>
+            <Text style={styles.transactionLabel}>{item.label}</Text>
+            <Text style={item.type === 'income' ? styles.incomeText : styles.expenseText}>
+              {item.type === 'income' ? '+' : '-'} R$ {item.value.toFixed(2)}
+            </Text>
           </View>
-        </View>
-      </Modal>
-
-      {/* BOTÃO FLUTUANTE */}
-      <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
-        <Text style={styles.fabIcon}>+</Text>
-      </TouchableOpacity>
+        )}
+        ListEmptyComponent={<Text style={styles.emptyText}>Nenhuma transação encontrada.</Text>}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  // ... (Mantenha seus estilos anteriores e adicione estes novos)
-  container: {
+  container: { 
     flex: 1,
     backgroundColor: "#F4F4F5",
-    padding: 20
-  },
-  header: {
+      padding: 20 
+    },
+  header: { 
     marginTop: 40,
-    marginBottom: 20
-  },
-  greeting: {
+    marginBottom: 20 
+    },
+  greeting: { 
     fontSize: 24,
-    fontWeight: "bold"
-  },
-  balanceLabel: {
+    fontWeight: "bold" 
+    },
+  balanceLabel: { 
     fontSize: 16,
     color: "#71717A",
-    marginTop: 10
-  },
-  balanceValue: {
+    marginTop: 10 
+    },
+  balanceValue: { 
     fontSize: 32,
     fontWeight: "900",
-    color: "#1A1A1E"
-  },
-  summaryContainer: {
+    color: "#1A1A1E" 
+    },
+  summaryContainer: { 
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 30
-  },
-  summaryItem: {
+    marginBottom: 30 
+    },
+  summaryItem: { 
     backgroundColor: "#FFF",
     padding: 15,
     borderRadius: 12,
-    width: "48%"
-  },
+    width: "48%" 
+      },
   incomeText: {
     color: "#10B981",
-    fontWeight: "bold"
+    fontWeight: "bold" 
   },
   expenseText: {
     color: "#EF4444",
-    fontWeight: "bold"
+    fontWeight: "bold" 
   },
   listTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 15
+    marginBottom: 15 
   },
-  transactionItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    backgroundColor: "#FFF",
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 10
+  transactionItem: { 
+    flexDirection: "row", 
+    justifyContent: "space-between", 
+    backgroundColor: "#FFF", 
+    padding: 15, 
+    borderRadius: 12, 
+    marginBottom: 10 
   },
   transactionLabel: {
     fontSize: 16,
@@ -276,95 +196,27 @@ const styles = StyleSheet.create({
   emptyText: {
     textAlign: "center",
     color: "#71717A",
-    marginTop: 20
+    marginTop: 20 
   },
   fab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 30,
-    backgroundColor: '#311de1',
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 8
-  },
-  fabIcon: {
-    color: '#FFF',
-    fontSize: 30,
-    fontWeight: 'bold'
-  },
-
-  // Estilos do Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  modalContent: {
-    width: '85%',
-    backgroundColor: '#FFF',
-    padding: 25,
-    borderRadius: 20,
-    alignItems: 'center'
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 20
-  },
-  input: {
-    width: '100%',
-    height: 50,
-    backgroundColor: '#F4F4F5',
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    marginBottom: 15
-  },
-  typeContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginBottom: 20
-  },
-  typeBtn: {
-    flex: 1,
-    height: 45,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderColor: '#DDD',
-    borderRadius: 10,
-    marginHorizontal: 5
-  },
-  typeBtnSelected: {
-    backgroundColor: '#D1FAE5',
-    borderColor: '#10B981'
-  },
-  typeBtnSelectedExpense: {
-    backgroundColor: '#FEE2E2',
-    borderColor: '#EF4444'
-  },
-  saveBtn: {
-    width: '100%',
-    height: 50,
-    backgroundColor: '#311de1',
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  deleteButton: {
-  backgroundColor: '#EF4444',
+  position: 'absolute',
+  right: 20,
+  bottom: 30,
+  backgroundColor: '#311de1',
+  width: 60,
+  height: 60,
+  borderRadius: 30,
   justifyContent: 'center',
   alignItems: 'center',
-  width: 80,          // Largura fixa é importante!
-  height: 60,          // Deve ser a mesma altura do seu card
-  borderRadius: 12,
-  marginLeft: 10,      // Espaço entre o card e o botão
+  elevation: 8, // Sombra no Android
+  shadowColor: '#000', // Sombra no iOS
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.3,
+  shadowRadius: 4,
 },
-deleteText: {
+fabIcon: {
   color: '#FFF',
+  fontSize: 30,
   fontWeight: 'bold',
 },
 });
