@@ -291,22 +291,28 @@ export const deleteUser = (id: number) => {
 
 // ========== FUNÇÕES PARA TRANSAÇÕES ==========
 
-// Criar transação
-export const createTransaction = (transaction: Omit<Transaction, 'id'>) => {
-  return new Promise<number>((resolve, reject) => {
+// Criar transação (Renomeada para addTransaction para alinhar com a Home)
+export const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
+  return new Promise<number>(async (resolve, reject) => {
     if (isWeb) {
       reject(new Error('Criação de transação não suportada no web (use mobile).'));
       return;
     }
-    if (!db) {
+
+    // Usando a sua função openDb já existente no arquivo
+    const database = await openDb();
+
+    if (!database) {
       reject(new Error('Banco de dados não inicializado.'));
       return;
     }
+
     try {
-      const result = db.runSync(
+      const result = database.runSync(
         'INSERT INTO transactions (label, value, type, date, user_id) VALUES (?, ?, ?, ?, ?);',
         [transaction.label, transaction.value, transaction.type, transaction.date, transaction.user_id]
       );
+
       if (result.lastInsertRowId) {
         resolve(result.lastInsertRowId);
       } else {
@@ -319,8 +325,12 @@ export const createTransaction = (transaction: Omit<Transaction, 'id'>) => {
   });
 };
 
-// Buscar transações por usuário
+// Mantenha a createTransaction como um apelido (alias) para não quebrar outros arquivos caso existam
+export const createTransaction = addTransaction;
+
+// Buscar transações por usuário (Mantenha como você já tem no arquivo...)
 export const getTransactionsByUser = (userId: number) => {
+// ... resto do seu código igual
   return new Promise<Transaction[]>((resolve, reject) => {
     if (isWeb) {
       resolve([]);
