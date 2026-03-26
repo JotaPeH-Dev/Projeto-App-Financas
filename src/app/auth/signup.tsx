@@ -15,7 +15,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { signupSchema } from "";
+import { signupSchema } from "../../Utils/schema";
 
 export default function Register() {
   const router = useRouter();
