@@ -198,38 +198,38 @@ export default function SignupScreen() {
 const styles = StyleSheet.create({
 <<<<<<< Updated upstream
   container: { flexGrow: 1, backgroundColor: '#FFF', padding: 20 },
-  header: { alignItems: 'center', marginTop: 40, marginBottom: 30 },
-  iconCircle: { width: 120, height: 120, borderRadius: 60, backgroundColor: '#F0F3FF', justifyContent: 'center', alignItems: 'center' },
-  title: { fontSize: 32, fontWeight: 'bold', color: '#000', alignSelf: 'flex-start', marginTop: 20 },
-  subtitle: { fontSize: 16, color: '#71717A', alignSelf: 'flex-start', marginTop: 5 },
-  form: { gap: 15, marginBottom: 25 },
-  input: { backgroundColor: '#FBFBFB', borderWidth: 1, borderColor: '#E4E4E7', borderRadius: 12, padding: 18, fontSize: 16 },
+  header: { alignItems: 'center', margininset-block-start: 40, margininset-block-end: 30 },
+  iconCircle: { inline-size: 120, block-size: 120, borderRadius: 60, backgroundColor: '#F0F3FF', justifyContent: 'center', alignItems: 'center' },
+  title: { fontSize: 32, fontWeight: 'bold', color: '#000', alignSelf: 'flex-start', margininset-block-start: 20 },
+  subtitle: { fontSize: 16, color: '#71717A', alignSelf: 'flex-start', margininset-block-start: 5 },
+  form: { gap: 15, margininset-block-end: 25 },
+  input: { backgroundColor: '#FBFBFB', borderinline-size: 1, borderColor: '#E4E4E7', borderRadius: 12, padding: 18, fontSize: 16 },
   button: { backgroundColor: '#032ad7', borderRadius: 12, padding: 18, alignItems: 'center' },
   buttonText: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
-  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 20 },
+  footer: { flexDirection: 'row', justifyContent: 'center', margininset-block-start: 20 },
   footerText: { fontSize: 14, color: '#71717A' },
   linkText: { fontSize: 14, color: '#032ad7', fontWeight: 'bold' },
 =======
   container: { flex: 1, justifyContent: 'center', padding: 20, backgroundColor: '#FFF' },
-  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
+  title: { fontSize: 28, fontWeight: 'bold', margininset-block-end: 20, textAlign: 'center' },
   input: {
-    height: 55,
-    borderWidth: 1,
+    block-size: 55,
+    borderinline-size: 1,
     borderColor: '#DDD',
     borderRadius: 8,
     paddingHorizontal: 15,
-    marginBottom: 10,
+    margininset-block-end: 10,
     fontSize: 16
   },
   inputError: { borderColor: '#EF4444' },
-  errorText: { color: '#EF4444', marginBottom: 10, fontSize: 12 },
+  errorText: { color: '#EF4444', margininset-block-end: 10, fontSize: 12 },
   button: {
     backgroundColor: '#032ad7',
-    height: 55,
+    block-size: 55,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 10
+    margininset-block-start: 10
   },
   buttonText: { color: '#FFF', fontSize: 18, fontWeight: 'bold' }
 >>>>>>> Stashed changes
