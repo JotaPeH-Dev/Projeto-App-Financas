@@ -38,9 +38,11 @@ export default function Register() {
 
   // Função que é chamada quando o botão é clicado E os dados estão válidos
   const handleRegister = async () => {
+  console.log("Valores atuais:", { name, email, password }); // Adicione esse log para testar!
+
   if (!name || !email || !password) {
-    Alert.alert("Atenção", "Preencha todos os campos!");
-    return;
+    Alert.alert("Erro", "Preencha todos os campos.");
+    return; // O código para aqui se name, email ou password estiverem vazios
   }
 
   try {
