@@ -1,190 +1,131 @@
-import { Button } from "@/Components/Button";
-import { Input } from "@/Components/input";
-import { Link, Redirect, useRouter } from "expo-router";
-import { useState, useEffect } from "react";
-import {
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View
-} from "react-native";
-import { z } from "zod";
-import { useAuth } from "../../contexts/AuthContext";
-import { initDatabase } from "@/src/database/database";
-import * as SQLite from "expo-sqlite";
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { FontAwesome5 } from '@expo/vector-icons'; 
+import { useRouter } from 'expo-router';
+import { useAuth } from '../../contexts/AuthContext'; // Ajuste o caminho se necessário
 
-// 1. Schema de validação
-const loginSchema = z.object({
-  email: z.string().email("E-mail inválido").min(1, "E-mail é obrigatório"),
-  password: z.string().min(6, "A senha deve conter no mínimo 6 caracteres")
-});
-
-export default function Index() {
+export default function Login() {
   const router = useRouter();
-  const { signIn, user } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState<any>({});
-  const [isLoading, setIsLoading] = useState(false);
-  const [dbReady, setDbReady] = useState(false);
+  const { signIn } = useAuth();
 
-  useEffect(() => {
-    async function setup() {
-      try {
-        await initDatabase ();
-        setDbReady(true);
-      } catch (e) {
-        console.error("Erro ao inicializar banco", e);
-      }
+  // 1. ESTADOS
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // 2. FUNÇÃO DE LOGIN
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert("Erro", "Por favor, preencha todos os campos.");
+      return;
     }
-    setup();
-  },[]);
 
-  // 1. Verificação de carregamento do banco
-  if (!dbReady) return null;
-
-  // 2. Redirecionamento se já estiver logado (fora de qualquer return JSX)
-  if (user) {
-    return <Redirect href="/(tabs)/home" />;
-  }
-
-  async function handleLogin() {
     try {
-      setIsLoading(true);
-      // Validação com Zod antes de chamar o signIn
-      const validation = loginSchema.safeParse({ email, password });
-      
-      if (!validation.success) {
-        const fieldErrors = validation.error.flatten().fieldErrors;
-        setErrors(fieldErrors);
-        return;
-      }
-
+      setLoading(true);
       await signIn(email, password);
-      console.log("Login realizado com sucesso!");
-
+      
+      // Se o login der certo, o AuthContext atualiza o 'user' 
+      // e você pode redirecionar para a Home
+      router.replace('/(tabs)/home'); 
     } catch (error: any) {
-      console.log("Erro no Login:", error.message);
-      alert("E-mail ou senha incorretos.");
+      Alert.alert("Falha no Login", error.message);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }
+  };
 
-  // 3. O Return do JSX começa aqui
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    <KeyboardAvoidingView 
+      style={{ flex: 1 }} 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.container}>
-          <Image
-            source={require("../assets/9518505.jpg")}
-            resizeMode="contain"
-            style={styles.illustration}
+      <ScrollView contentContainerStyle={styles.container}>
+        
+        <View style={styles.header}>
+          <View style={styles.iconCircle}>
+            <FontAwesome5 name="lock" size={70} color="#032ad7" />
+          </View>
+          <Text style={styles.title}>Entrar</Text>
+          <Text style={styles.subtitle}>Acesse sua conta com e-mail e senha.</Text>
+        </View>
+
+        <View style={styles.form}>
+          <TextInput
+            style={styles.input}
+            placeholder="E-mail"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
           />
 
-          <View style={styles.header}>
-            <Text style={styles.title}>Entrar</Text>
-            <Text style={styles.subtitle}>Acesse sua conta com e-mail e senha.</Text>
-          </View>
-
-          <View style={styles.form}>
-            <Input
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              placeholder="E-mail"
-              value={email}
-              onChangeText={(text) => {
-                setEmail(text);
-                if (errors.email) setErrors((prev: any) => ({ ...prev, email: null }));
-              }}
-            />
-            {errors.email && <Text style={styles.errorText}>{errors.email[0]}</Text>}
-
-            <Input
-              placeholder="Senha"
-              secureTextEntry
-              value={password}
-              onChangeText={(text) => {
-                setPassword(text);
-                if (errors.password) setErrors((prev: any) => ({ ...prev, password: null }));
-              }}
-            />
-            {errors.password && <Text style={styles.errorText}>{errors.password[0]}</Text>}
-
-            <Button
-              label={isLoading ? "Carregando..." : "Entrar"}
-              onPress={handleLogin}
-              disabled={isLoading}
-            />
-          </View>
-
-          <Text style={styles.footerText}>
-            Não tem uma conta?{" "}
-            <Link href="/auth/signup" style={styles.footerLink}>
-              Cadastre-se aqui.
-            </Link>
-          </Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Senha"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={true}
+          />
         </View>
+
+        {/* Botão Entrar Conectado */}
+        <TouchableOpacity 
+          style={styles.button} 
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          <Text style={styles.buttonText}>
+            {loading ? "Entrando..." : "Entrar"}
+          </Text>
+        </TouchableOpacity>
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Não tem uma conta? </Text>
+          <TouchableOpacity onPress={() => router.push('/auth/signup')}>
+            <Text style={styles.linkText}>Cadastre-se.</Text>
+          </TouchableOpacity>
+        </View>
+
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
-
+// Estilos mantidos similares ao design original
 const styles = StyleSheet.create({
-  scrollContent: {
-    flexGrow: 1
-  },
-  container: {
-    flex: 1,
-    backgroundColor: "#F4F4F5",
-    padding: 32,
+  container: { flexGrow: 1, backgroundColor: '#FFF', padding: 20 },
+  header: { alignItems: 'center', marginTop: 60, marginBottom: 40 },
+  // Estilo para o círculo ao redor do ícone
+  iconCircle: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: '#F0F3FF', // Azul bem clarinho de fundo
     justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
   },
-  illustration: {
-    width: "100%",
-    height: 250,
-  },
-  header: {
-    marginTop: 20
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: "#1A1A1E"
-  },
-  subtitle: {
+  title: { fontSize: 32, fontWeight: 'bold', color: '#000', alignSelf: 'flex-start', marginTop: 20 },
+  subtitle: { fontSize: 16, color: '#71717A', alignSelf: 'flex-start', marginTop: 5 },
+  form: { gap: 15, marginBottom: 25 },
+  input: {
+    backgroundColor: '#FBFBFB',
+    borderWidth: 1,
+    borderColor: '#E4E4E7',
+    borderRadius: 12,
+    padding: 18,
     fontSize: 16,
-    color: "#71717A",
-    marginTop: 4
+    color: '#1A1A1E',
   },
-  form: {
-    marginTop: 32,
-    gap: 16
+  button: {
+    backgroundColor: '#032ad7',
+    borderRadius: 12,
+    padding: 18,
+    alignItems: 'center',
+    marginBottom: 20,
   },
-  errorText: {
-    color: "#EF4444",
-    fontSize: 12,
-    marginTop: -12,
-    marginBottom: 4,
-  },
-  footerText: {
-    textAlign: "center",
-    marginTop: 32,
-    color: "#585860"
-  },
-  footerLink: {
-    color: "#032ad7",
-    fontWeight: "700"
-  },
+  buttonText: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
+  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 10 },
+  footerText: { fontSize: 14, color: '#71717A' },
+  linkText: { fontSize: 14, color: '#032ad7', fontWeight: 'bold' },
 });

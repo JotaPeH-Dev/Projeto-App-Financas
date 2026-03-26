@@ -1,127 +1,109 @@
-import { Button } from "@/Components/Button";
-import { Input } from "@/Components/input";
-import { Link, useRouter } from "expo-router";
-import { useState } from "react";
-import {
-  Alert,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View
-} from "react-native";
-import { z } from "zod";
-import { useAuth } from "../../contexts/AuthContext";
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons'; 
+import { useRouter } from 'expo-router';
+import { useAuth } from '../../contexts/AuthContext'; // Verifique se este caminho está correto
 
-export default function Signup() {
+export default function Register() {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [errors, setErrors] = useState<any>({});
-  const [isLoading, setIsLoading] = useState(false);
-  const {signUp} = useAuth();
+  const { signUp } = useAuth();
 
-  const signupSchema = z.object({
-    name: z.string().min(3, "O nome deve conter no mínimo 3 caracteres"),
-    email: z.string().email("E-mail inválido"),
-    password: z.string().min(6, "A senha deve conter no mínimo 6 caracteres"),
-    confirmPassword: z.string()
-  }).refine((data) => data.password === data.confirmPassword, {
-    message: "As senhas não coincidem",
-    path: ["confirmPassword"],
-  });
+  // 1. ESTADOS (Devem ficar aqui dentro)
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-async function handleSignup() {
-    const validation = signupSchema.safeParse({ name, email, password, confirmPassword });
+  // 2. FUNÇÃO DE REGISTRO
+  const handleRegister = async () => {
+    if (!name || !email || !password) {
+      Alert.alert("Erro", "Preencha todos os campos.");
+      return;
+    }
 
-    if (!validation.success) {
-      setErrors(validation.error.flatten().fieldErrors);
+    if (password !== confirmPassword) {
+      Alert.alert("Erro", "As senhas não coincidem.");
       return;
     }
 
     try {
-      setIsLoading(true);
+      setLoading(true);
       await signUp(name, email, password);
-
+      
       Alert.alert("Sucesso", "Conta criada com sucesso!", [
-        { text: "OK", onPress: () => router.replace("/auth") }
+        { text: "OK", onPress: () => router.replace('/(tabs)/home') } 
       ]);
     } catch (error: any) {
-      Alert.alert("Erro", error.message);
+      Alert.alert("Erro ao cadastrar", error.message);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }
+  };
 
-  // O RETURN PRECISA ESTAR AQUI DENTRO!
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.select({ ios: "padding", android: "height" })}
+    <KeyboardAvoidingView 
+      style={{ flex: 1 }} 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.container}>
-          <Image
-            source={require("../assets/3962434.jpg")} // Caminho relativo ajustado
-            style={styles.illustration}
-          />
-
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.header}>
+          <View style={styles.iconCircle}>
+            <MaterialIcons name="person-add" size={80} color="#032ad7" />
+          </View>
           <Text style={styles.title}>Cadastrar</Text>
           <Text style={styles.subtitle}>Crie sua conta para acessar.</Text>
+        </View>
 
-          <View style={styles.form}>
-            <Input
-              placeholder="Nome"
-              onChangeText={setName}
-              value={name}
-            />
-            {errors.name && <Text style={styles.errorText}>{errors.name[0]}</Text>}
+        <View style={styles.form}>
+          <TextInput
+            style={styles.input}
+            placeholder="Nome Completo"
+            value={name}
+            onChangeText={setName}
+          />
 
-            <Input
-              placeholder="E-mail"
-              keyboardType="email-address"
-              onChangeText={setEmail}
-              value={email}
-            />
-            {errors.email && <Text style={styles.errorText}>{errors.email[0]}</Text>}
+          <TextInput
+            style={styles.input}
+            placeholder="E-mail"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
 
-            <Input
-              placeholder="Senha"
-              secureTextEntry
-              onChangeText={setPassword}
-              value={password}
-            />
-            {errors.password && <Text style={styles.errorText}>{errors.password[0]}</Text>}
+          <TextInput
+            style={styles.input}
+            placeholder="Senha"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+          />
 
-            <Input
-              placeholder="Confirmar Senha"
-              secureTextEntry
-              onChangeText={setConfirmPassword}
-              value={confirmPassword}
-            />
-            {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword[0]}</Text>}
+          <TextInput
+            style={styles.input}
+            placeholder="Confirmar Senha"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+          />
+        </View>
 
-            <Button
-              label={isLoading ? "Carregando..." : "Cadastrar"}
-              onPress={handleSignup}
-              disabled={isLoading}
-            />
-          </View>
-
-          <Text style={styles.footerText}>
-            Já tem uma conta? {" "}
-            <Link href="/auth" style={styles.footerLink}>
-              Fazer Login.
-            </Link>
+        <TouchableOpacity 
+          style={styles.button} 
+          onPress={handleRegister} // Chama a função aqui
+          disabled={loading}
+        >
+          <Text style={styles.buttonText}>
+            {loading ? "Carregando..." : "Cadastrar"}
           </Text>
+        </TouchableOpacity>
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Já tem uma conta? </Text>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Text style={styles.linkText}>Fazer Login.</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -129,41 +111,16 @@ async function handleSignup() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fDfDfD",
-    padding: 32,
-  },
-  illustration: {
-    width: "100%",
-    height: 250,
-    resizeMode: "contain",
-    marginTop: 20,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '900',
-  },
-  subtitle: {
-    fontSize: 16,
-  },
-  form: {
-    marginTop: 24,
-    gap: 12,
-  },
-  errorText: {
-    color: "#EF4444",
-    fontSize: 12,
-    marginTop: -8,
-    marginBottom: 4,
-  },
-  footerText: {
-    textAlign: "center",
-    marginTop: 24,
-    color: "#585860",
-  },
-  footerLink: {
-    color: "#032ad7",
-    fontWeight: "700",
-  },
+  container: { flexGrow: 1, backgroundColor: '#FFF', padding: 20 },
+  header: { alignItems: 'center', marginTop: 40, marginBottom: 30 },
+  iconCircle: { width: 120, height: 120, borderRadius: 60, backgroundColor: '#F0F3FF', justifyContent: 'center', alignItems: 'center' },
+  title: { fontSize: 32, fontWeight: 'bold', color: '#000', alignSelf: 'flex-start', marginTop: 20 },
+  subtitle: { fontSize: 16, color: '#71717A', alignSelf: 'flex-start', marginTop: 5 },
+  form: { gap: 15, marginBottom: 25 },
+  input: { backgroundColor: '#FBFBFB', borderWidth: 1, borderColor: '#E4E4E7', borderRadius: 12, padding: 18, fontSize: 16 },
+  button: { backgroundColor: '#032ad7', borderRadius: 12, padding: 18, alignItems: 'center' },
+  buttonText: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
+  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 20 },
+  footerText: { fontSize: 14, color: '#71717A' },
+  linkText: { fontSize: 14, color: '#032ad7', fontWeight: 'bold' },
 });

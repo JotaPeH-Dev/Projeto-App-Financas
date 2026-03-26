@@ -15,14 +15,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // 1. Inicializa o banco de dados ao abrir o app
   useEffect(() => {
     async function setup() {
       try {
-        // Inicializa o banco de dados antes de qualquer coisa
         await initDatabase();
-        // Aqui você poderia carregar um usuário salvo no Storage (opcional)
+        // Dica: Futuramente você pode usar o AsyncStorage aqui para manter o login
       } catch (e) {
-        console.error("Erro ao inicializar:", e);
+        console.error("Erro ao inicializar banco:", e);
       } finally {
         setLoading(false);
       }
@@ -30,28 +30,50 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setup();
   }, []);
 
+  // 2. Função de Cadastro (Apenas uma agora!)
+  const signUp = async (name: string, email: string, password: string) => {
+    try {
+      const existingUser = await getUserByEmail(email);
+      if (existingUser) {
+        throw new Error("Este e-mail já está cadastrado.");
+      }
+
+      const userId = await createUser({ 
+        name,
+        email,
+        password,
+        is_admin: false
+      });
+
+      const newUser: User = {
+        id: userId,
+        name,
+        email,
+        password,
+        is_admin: false,
+        created_at: new Date().toISOString(),
+      };
+
+      setUser(newUser); // Loga o usuário automaticamente após cadastrar
+    } catch (error: any) {
+      throw error;
+    }
+  };
+
+  // 3. Função de Login
   async function signIn(email: string, password: string) {
-    const foundUser = await getUserByEmail(email);
-    if (!foundUser || foundUser.password !== password) {
-      throw new Error("E-mail ou senha inválidos.");
+    try {
+      const foundUser = await getUserByEmail(email);
+      if (!foundUser || foundUser.password !== password) {
+        throw new Error("E-mail ou senha inválidos.");
+      }
+      setUser(foundUser);
+    } catch (error: any) {
+      throw error;
     }
-    setUser(foundUser);
   }
 
-  async function signUp(name: string, email: string, password: string) {
-    const userExists = await getUserByEmail(email);
-    if (userExists) {
-      throw new Error("Este e-mail já está cadastrado.");
-    }
-
-    await createUser({
-      name,
-      email,
-      password,
-      is_admin: false
-    });
-  }
-
+  // 4. Função de Sair
   function signOut() {
     setUser(null);
   }
