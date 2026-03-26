@@ -1,24 +1,51 @@
+import { MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   SafeAreaView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View
 } from "react-native";
+import { useAuth } from '../../contexts/AuthContext'; // Ajuste o caminho se necessário
 
 export default function Home() {
+  const router = useRouter();
+  const { signOut, user } = useAuth(); // Pegamos o signOut do seu contexto
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState([]);
 
   useEffect(() => {
-    // Simulação de carregamento de dados
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1000);
+    const timer = setTimeout(() => setLoading(false), 1000);
     return () => clearTimeout(timer);
   }, []);
+
+  // Função de Logout
+  const handleLogout = () => {
+    Alert.alert(
+      "Sair",
+      "Deseja realmente sair da sua conta?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Sair",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await signOut(); // Limpa o estado de autenticação
+              router.replace("/(auth)/login"); // Volta para a tela de login (ou index)
+            } catch (error) {
+              Alert.alert("Erro", "Não foi possível sair.");
+            }
+          }
+        }
+      ]
+    );
+  };
 
   if (loading) {
     return (
@@ -31,7 +58,15 @@ export default function Home() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.greeting}>Olá, Bem-vindo!</Text>
+        <View style={styles.headerTop}>
+          <Text style={styles.greeting}>Olá, {user?.name || 'Bem-vindo'}!</Text>
+
+          {/* BOTÃO DE SAIR */}
+          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+            <MaterialIcons name="logout" size={24} color="#FFF" />
+          </TouchableOpacity>
+        </View>
+
         <Text style={styles.balance}>R$ 0,00</Text>
       </View>
 
@@ -41,9 +76,7 @@ export default function Home() {
           data={transactions}
           keyExtractor={(item: any) => item.id}
           renderItem={({ item }) => (
-            <View style={styles.item}>
-              <Text>{item.description}</Text>
-            </View>
+            <View style={styles.item}><Text>{item.description}</Text></View>
           )}
           ListEmptyComponent={
             <Text style={styles.emptyText}>Nenhuma transação encontrada.</Text>
@@ -57,12 +90,12 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFF" 
+    backgroundColor: "#FFF"
   },
   center: {
     flex: 1,
     justifyContent: "center",
-    alignItems: "center" 
+    alignItems: "center"
   },
   header: {
     backgroundColor: "#032ad7",
@@ -70,34 +103,44 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20
   },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  logoutButton: {
+    padding: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 8
+  },
   greeting: {
     color: "#FFF",
-    fontSize: 16 
+    fontSize: 16
   },
   balance: {
     color: "#FFF",
     fontSize: 32,
     fontWeight: "bold",
-    marginTop: 10 
+    marginTop: 10
   },
   content: {
     flex: 1,
-    padding: 20 
+    padding: 20
   },
   title: {
     fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 15 
+    marginBottom: 15
   },
   item: {
     padding: 15,
     backgroundColor: "#F5F5F5",
     borderRadius: 10,
-    marginBottom: 10 
+    marginBottom: 10
   },
   emptyText: {
     textAlign: "center",
     color: "#71717A",
-    marginTop: 20 
+    marginTop: 20
   }
 });

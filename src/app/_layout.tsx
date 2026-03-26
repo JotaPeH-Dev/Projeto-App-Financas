@@ -11,11 +11,14 @@ function RootLayoutNav() {
   useEffect(() => {
     if (loading) return;
 
-    const inAuthGroup = segments[0] === "auth";
+    // AQUI ESTAVA O ERRO: Adicione os parênteses para bater com o nome da pasta
+    const inAuthGroup = segments[0] === "(auth)";
 
     if (!user && !inAuthGroup) {
-      router.replace("/auth");
+      // Se deslogou e não está no grupo de login, manda para o index do (auth)
+      router.replace("/(auth)/login"); 
     } else if (user && inAuthGroup) {
+      // Se logou e está no login, manda para a home
       router.replace("/(tabs)/home");
     }
   }, [user, loading, segments]);
@@ -30,12 +33,12 @@ function RootLayoutNav() {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="auth" />
+      {/* GARANTA que o nome aqui tenha os parênteses exatamente como na pasta */}
+      <Stack.Screen name="(auth)" /> 
       <Stack.Screen name="(tabs)" />
     </Stack>
   );
 }
-
 export default function RootLayout() {
   return (
     <AuthProvider>
