@@ -1,42 +1,42 @@
-<<<<<<< Updated upstream
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  TouchableOpacity, 
+  StyleSheet, 
+  ScrollView, 
+  Alert, 
+  KeyboardAvoidingView, 
+  Platform 
+} from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons'; 
 import { useRouter } from 'expo-router';
-import { useAuth } from '../../contexts/AuthContext'; // Verifique se este caminho está correto
+import { useAuth } from '../../contexts/AuthContext';
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { signupSchema } from "";
 
 export default function Register() {
   const router = useRouter();
   const { signUp } = useAuth();
-
-  // 1. ESTADOS (Devem ficar aqui dentro)
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // 2. FUNÇÃO DE REGISTRO
-  const handleRegister = async () => {
-    if (!name || !email || !password) {
-      Alert.alert("Erro", "Preencha todos os campos.");
-      return;
-    }
+  const { control, handleSubmit, formState: { errors } } = useForm({
+    resolver: zodResolver(signupSchema)
+  });
 
-    if (password !== confirmPassword) {
-      Alert.alert("Erro", "As senhas não coincidem.");
-      return;
-    }
-
+  const handleRegister = async (data: any) => {
     try {
       setLoading(true);
-      await signUp(name, email, password);
+      // 'data' contém name, email e password validados pelo Zod
+      await signUp(data.name, data.email, data.password);
       
       Alert.alert("Sucesso", "Conta criada com sucesso!", [
         { text: "OK", onPress: () => router.replace('/(tabs)/home') } 
       ]);
     } catch (error: any) {
-      Alert.alert("Erro ao cadastrar", error.message);
+      Alert.alert("Erro ao cadastrar", error.message || "Ocorreu um erro inesperado.");
     } finally {
       setLoading(false);
     }
@@ -57,42 +57,58 @@ export default function Register() {
         </View>
 
         <View style={styles.form}>
-          <TextInput
-            style={styles.input}
-            placeholder="Nome Completo"
-            value={name}
-            onChangeText={setName}
+          {/* CAMPO NOME */}
+          <Controller
+            control={control}
+            name="name"
+            render={({ field: { onChange, value } }) => (
+              <TextInput
+                style={[styles.input, errors.name && styles.inputError]}
+                placeholder="Nome Completo"
+                value={value}
+                onChangeText={onChange}
+              />
+            )}
           />
+          {errors.name && <Text style={styles.errorText}>{errors.name.message as string}</Text>}
 
-          <TextInput
-            style={styles.input}
-            placeholder="E-mail"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
+          {/* CAMPO E-MAIL */}
+          <Controller
+            control={control}
+            name="email"
+            render={({ field: { onChange, value } }) => (
+              <TextInput
+                style={[styles.input, errors.email && styles.inputError]}
+                placeholder="E-mail"
+                value={value}
+                onChangeText={onChange}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            )}
           />
+          {errors.email && <Text style={styles.errorText}>{errors.email.message as string}</Text>}
 
-          <TextInput
-            style={styles.input}
-            placeholder="Senha"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
+          {/* CAMPO SENHA */}
+          <Controller
+            control={control}
+            name="password"
+            render={({ field: { onChange, value } }) => (
+              <TextInput
+                style={[styles.input, errors.password && styles.inputError]}
+                placeholder="Senha (mín. 6 caracteres)"
+                value={value}
+                onChangeText={onChange}
+                secureTextEntry
+              />
+            )}
           />
-
-          <TextInput
-            style={styles.input}
-            placeholder="Confirmar Senha"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-          />
+          {errors.password && <Text style={styles.errorText}>{errors.password.message as string}</Text>}
         </View>
 
         <TouchableOpacity 
-          style={styles.button} 
-          onPress={handleRegister} // Chama a função aqui
+          style={[styles.button, loading && { opacity: 0.7 }]} 
+          onPress={handleSubmit(handleRegister)}
           disabled={loading}
         >
           <Text style={styles.buttonText}>
@@ -107,130 +123,23 @@ export default function Register() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-=======
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { 
-  View, 
-  TextInput, 
-  Text, 
-  TouchableOpacity, 
-  StyleSheet, 
-  KeyboardAvoidingView, 
-  Platform 
-} from "react-native";
-import { z } from "zod";
-import { signupSchema } from "../../utils/schema"
-
-export default function SignupScreen() {
-  const { control, handleSubmit, formState: { errors } } = useForm({
-    resolver: zodResolver(signupSchema)
-  });
-
-  const handleRegister = (data: any) => {
-    console.log("Dados prontos para o banco:", data);
-    // Aqui você chama sua função de cadastro do database.ts
-  };
-
-  return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
-      <Text style={styles.title}>Criar Conta</Text>
-
-      {/* CAMPO NOME */}
-      <Controller
-        control={control}
-        name="name"
-        render={({ field: { onChange, value } }) => (
-          <TextInput
-            style={[styles.input, errors.name && styles.inputError]}
-            placeholder="Nome Completo"
-            value={value}
-            onChangeText={onChange}
-          />
-        )}
-      />
-      {errors.name && <Text style={styles.errorText}>{errors.name.message as string}</Text>}
-
-      {/* CAMPO E-MAIL */}
-      <Controller
-        control={control}
-        name="email"
-        render={({ field: { onChange, value } }) => (
-          <TextInput
-            style={[styles.input, errors.email && styles.inputError]}
-            placeholder="E-mail"
-            keyboardType="email-address" // Corrigindo o teclado numérico da foto
-            autoCapitalize="none"
-            value={value}
-            onChangeText={onChange}
-          />
-        )}
-      />
-      {errors.email && <Text style={styles.errorText}>{errors.email.message as string}</Text>}
-
-      {/* CAMPO SENHA */}
-      <Controller
-        control={control}
-        name="password"
-        render={({ field: { onChange, value } }) => (
-          <TextInput
-            style={[styles.input, errors.password && styles.inputError]}
-            placeholder="Senha (mín. 6 caracteres)"
-            secureTextEntry // Esconde os caracteres
-            value={value}
-            onChangeText={onChange}
-          />
-        )}
-      />
-      {errors.password && <Text style={styles.errorText}>{errors.password.message as string}</Text>}
-
-      <TouchableOpacity style={styles.button} onPress={handleSubmit(handleRegister)}>
-        <Text style={styles.buttonText}>Cadastrar</Text>
-      </TouchableOpacity>
->>>>>>> Stashed changes
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-<<<<<<< Updated upstream
   container: { flexGrow: 1, backgroundColor: '#FFF', padding: 20 },
-  header: { alignItems: 'center', margininset-block-start: 40, margininset-block-end: 30 },
-  iconCircle: { inline-size: 120, block-size: 120, borderRadius: 60, backgroundColor: '#F0F3FF', justifyContent: 'center', alignItems: 'center' },
-  title: { fontSize: 32, fontWeight: 'bold', color: '#000', alignSelf: 'flex-start', margininset-block-start: 20 },
-  subtitle: { fontSize: 16, color: '#71717A', alignSelf: 'flex-start', margininset-block-start: 5 },
-  form: { gap: 15, margininset-block-end: 25 },
-  input: { backgroundColor: '#FBFBFB', borderinline-size: 1, borderColor: '#E4E4E7', borderRadius: 12, padding: 18, fontSize: 16 },
+  header: { alignItems: 'center', marginTop: 40, marginBottom: 30 },
+  iconCircle: { width: 120, height: 120, borderRadius: 60, backgroundColor: '#F0F3FF', justifyContent: 'center', alignItems: 'center' },
+  title: { fontSize: 32, fontWeight: 'bold', color: '#000', alignSelf: 'flex-start', marginTop: 20 },
+  subtitle: { fontSize: 16, color: '#71717A', alignSelf: 'flex-start', marginTop: 5 },
+  form: { gap: 5, marginBottom: 25 },
+  input: { backgroundColor: '#FBFBFB', borderWidth: 1, borderColor: '#E4E4E7', borderRadius: 12, padding: 18, fontSize: 16 },
+  inputError: { borderColor: '#EF4444' },
+  errorText: { color: '#EF4444', fontSize: 12, marginBottom: 10, marginLeft: 5 },
   button: { backgroundColor: '#032ad7', borderRadius: 12, padding: 18, alignItems: 'center' },
   buttonText: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
-  footer: { flexDirection: 'row', justifyContent: 'center', margininset-block-start: 20 },
+  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 20, marginBottom: 40 },
   footerText: { fontSize: 14, color: '#71717A' },
   linkText: { fontSize: 14, color: '#032ad7', fontWeight: 'bold' },
-=======
-  container: { flex: 1, justifyContent: 'center', padding: 20, backgroundColor: '#FFF' },
-  title: { fontSize: 28, fontWeight: 'bold', margininset-block-end: 20, textAlign: 'center' },
-  input: {
-    block-size: 55,
-    borderinline-size: 1,
-    borderColor: '#DDD',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    margininset-block-end: 10,
-    fontSize: 16
-  },
-  inputError: { borderColor: '#EF4444' },
-  errorText: { color: '#EF4444', margininset-block-end: 10, fontSize: 12 },
-  button: {
-    backgroundColor: '#032ad7',
-    block-size: 55,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    margininset-block-start: 10
-  },
-  buttonText: { color: '#FFF', fontSize: 18, fontWeight: 'bold' }
->>>>>>> Stashed changes
 });
