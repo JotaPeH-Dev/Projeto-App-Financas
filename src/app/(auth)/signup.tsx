@@ -12,16 +12,19 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { useAuth } from '../../contexts/AuthContext'; // <-- VERIFIQUE ESTE CAMINHO
-
+import { useAuth } from '../../contexts/AuthContext'; 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
-import { signupSchema } from "../../Utils/schema"; // <-- IMPORTANDO O SCHEMA QUE CRIAMOS
+import { signupSchema } from "../../Utils/schema"; 
+import { createUser } from '@/src/database/database';
 
 export default function Register() {
   const router = useRouter();
   const { signUp } = useAuth(); // Sua função de cadastro do AuthContext
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
 
   // Configuração do React Hook Form com Zod
   const { control, handleSubmit, formState: { errors } } = useForm({
@@ -34,29 +37,28 @@ export default function Register() {
   });
 
   // Função que é chamada quando o botão é clicado E os dados estão válidos
-  const handleRegister = async (data: any) => {
-    // 'data' já contém name, email e password validados e formatados pelo Zod
-    console.log("Dados validados e prontos:", data);
+  const handleRegister = async () => {
+  if (!name || !email || !password) {
+    Alert.alert("Atenção", "Preencha todos os campos!");
+    return;
+  }
 
-    try {
-      setLoading(true);
-
-      // Chame sua função de cadastro real aqui (Firebase, API, Supabase, etc)
-      // Exemplo: await signUp(data.name, data.email, data.password);
-
-      // Simulando uma espera de rede
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      Alert.alert("Sucesso", "Conta criada com sucesso!", [
-        { text: "OK", onPress: () => router.replace('/(tabs)/home') }
-      ]);
-    } catch (error: any) {
-      // Trate erros vindos do backend aqui (ex: e-mail já existe)
-      Alert.alert("Erro ao cadastrar", error.message || "Ocorreu um erro inesperado.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    // 1. Chama a função que insere no SQLite
+    await createUser({ 
+  name, 
+  email, 
+  password, 
+  is_admin: false // Adicionei o is_admin pois sua função usa user.is_admin
+});
+    
+    Alert.alert("Sucesso!", "Usuário cadastrado com sucesso!", [
+      { text: "Ir para Login", onPress: () => router.replace("/(auth)/" as any) }
+    ]);
+  } catch (error) {
+    Alert.alert("Erro", "Não foi possível cadastrar. O e-mail pode já existir.");
+  }
+};
 
   return (
     <KeyboardAvoidingView
@@ -69,7 +71,9 @@ export default function Register() {
             {/* Ícone idêntico ao da foto */}
             <MaterialIcons name="person-add" size={80} color="#032ad7" />
           </View>
+          <TouchableOpacity onPress={handleRegister}>
           <Text style={styles.title}>Cadastrar</Text>
+          </TouchableOpacity>
           <Text style={styles.subtitle}>Crie sua conta para acessar.</Text>
         </View>
 

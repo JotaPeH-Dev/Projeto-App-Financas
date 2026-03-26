@@ -1,36 +1,53 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  StyleSheet, 
-  Alert, 
-  SafeAreaView 
+  View, Text, FlatList, StyleSheet, TouchableOpacity, 
+  Alert, ActivityIndicator, SafeAreaView 
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons'; 
-import { useRouter } from 'expo-router';
-import { useAuth } from '../../contexts/AuthContext'; // Ajuste o caminho conforme sua estrutura
+import { FontAwesome5 } from '@expo/vector-icons';
+import { useFocusEffect } from 'expo-router';
+// Importe as funções do seu banco de dados
+import { getAllUsers, deleteUser } from '../../database/database'; 
 
 export default function AdminScreen() {
-  const router = useRouter();
-  const { signOut, user } = useAuth();
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleLogout = () => {
+  // Carrega a lista do SQLite
+  const loadUsers = async () => {
+    try {
+      setLoading(true);
+      const data = await getAllUsers();
+      setUsers(data);
+    } catch (error: any) {
+      Alert.alert("Erro", "Não foi possível carregar os usuários.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Atualiza sempre que entrar na aba
+  useFocusEffect(
+    useCallback(() => {
+      loadUsers();
+    }, [])
+  );
+
+  // Função para deletar com confirmação
+  const handleDelete = (id: number, name: string) => {
     Alert.alert(
-      "Sair do Painel",
-      "Tem certeza que deseja encerrar a sessão administrativa?",
+      "Confirmar Exclusão",
+      `Deseja realmente excluir o usuário ${name}?`,
       [
         { text: "Cancelar", style: "cancel" },
         { 
-          text: "Sair", 
+          text: "Excluir", 
           style: "destructive", 
           onPress: async () => {
             try {
-              await signOut();
-              // Redireciona para a tela inicial/login e limpa o histórico
-              router.replace('/auth'); 
+              await deleteUser(id);
+              loadUsers(); // Recarrega a lista após deletar
             } catch (error) {
-              Alert.alert("Erro", "Falha ao encerrar sessão.");
+              Alert.alert("Erro", "Falha ao deletar usuário.");
             }
           } 
         }
@@ -41,60 +58,129 @@ export default function AdminScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
+        <Text style={styles.title}>Painel Admin</Text>
+        <Text style={styles.subtitle}>Gerenciamento de banco de dados local.</Text>
+      </View>
+
+      {/* Card de Resumo com o Contador */}
+      <View style={styles.summaryCard}>
         <View>
-          <Text style={styles.adminTag}>PAINEL ADMIN</Text>
-          <Text style={styles.userName}>{user?.name || 'Administrador'}</Text>
+          <Text style={styles.summaryTitle}>Total de Usuários</Text>
+          <Text style={{ color: '#FFF', opacity: 0.8, fontSize: 12 }}>Cadastrados no banco</Text>
         </View>
-
-        {/* BOTÃO DE SAIR */}
-        <TouchableOpacity 
-          style={styles.logoutButton} 
-          onPress={handleLogout}
-          activeOpacity={0.7}
-        >
-          <MaterialIcons name="exit-to-app" size={26} color="#EF4444" />
-          <Text style={styles.logoutText}>Sair</Text>
-        </TouchableOpacity>
+        <Text style={styles.summaryNumber}>{users.length}</Text>
       </View>
 
-      <View style={styles.content}>
-        <Text style={styles.info}>Bem-vindo à área de gerenciamento.</Text>
-        {/* Restante do seu conteúdo admin aqui */}
-      </View>
+      {loading ? (
+        <ActivityIndicator size="large" color="#032ad7" style={{ marginTop: 50 }} />
+      ) : (
+        <FlatList
+          data={users}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <View style={styles.userCard}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.userName}>{item.name}</Text>
+                <Text style={styles.userEmail}>{item.email}</Text>
+                {item.is_admin && (
+                  <View style={styles.adminBadge}>
+                    <Text style={styles.adminText}>ADMIN</Text>
+                  </View>
+                )}
+              </View>
+
+              <TouchableOpacity 
+                style={styles.deleteButton}
+                onPress={() => handleDelete(item.id, item.name)}
+              >
+                <FontAwesome5 name="trash-alt" size={18} color="#EF4444" />
+              </TouchableOpacity>
+            </View>
+          )}
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>Nenhum usuário encontrado.</Text>
+          }
+        />
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  container: {
+    flex: 1,
+    backgroundColor: '#FFF',
+    paddingHorizontal: 20 
+  },
   header: {
+    marginTop: 40,
+    marginBottom: 20 
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#18181B' 
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#71717A' 
+  },
+  summaryCard: {
+    backgroundColor: '#032ad7',
+    padding: 16,
+    borderRadius: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    elevation: 2, // Sombra no Android
-    shadowColor: '#000', // Sombra no iOS
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    marginBottom: 20,
+    elevation: 4,
   },
-  adminTag: { fontSize: 12, fontWeight: 'bold', color: '#64748B', letterSpacing: 1 },
-  userName: { fontSize: 20, fontWeight: 'bold', color: '#1E293B' },
-  logoutButton: {
+  summaryTitle: { 
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600' },
+  summaryNumber: {
+    color: '#FFF',
+    fontSize: 32,
+    fontWeight: 'bold' },
+  userCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEE2E2',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
+    padding: 16,
+    backgroundColor: '#FBFBFB',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E4E4E7',
+    marginBottom: 12,
   },
-  logoutText: {
-    color: '#EF4444',
+  userName: {
+    fontSize: 16,
     fontWeight: 'bold',
-    marginLeft: 5,
+    color: '#18181B' 
   },
-  content: { flex: 1, padding: 20, justifyContent: 'center', alignItems: 'center' },
-  info: { color: '#94A3B8', fontSize: 16 }
+  userEmail: {
+    fontSize: 14,
+    color: '#71717A' 
+  },
+  adminBadge: {
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginTop: 4,
+    alignSelf: 'flex-start',
+  },
+  adminText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#4338CA' 
+  },
+  deleteButton: {
+    padding: 10 
+  },
+  emptyText: {
+    textAlign: 'center',
+    marginTop: 40,
+    color: '#A1A1AA' 
+  },
 });
