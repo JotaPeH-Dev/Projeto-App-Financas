@@ -1,19 +1,20 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
-import { FontAwesome5 } from '@expo/vector-icons'; 
-import { useRouter } from 'expo-router';
-import { useAuth } from '../../contexts/AuthContext'; // Ajuste o caminho se necessário
+import React, { useState } from "react";
+import { 
+  View, Text, TextInput, TouchableOpacity, Alert, 
+  StyleSheet, KeyboardAvoidingView, Platform, ScrollView 
+} from "react-native";
+import { useAuth } from "../../contexts/AuthContext"; 
+import { useRouter } from "expo-router";
+import { FontAwesome5 } from '@expo/vector-icons';
 
-export default function Login() {
-  const router = useRouter();
-  const { signIn } = useAuth();
-
-  // 1. ESTADOS
+export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  const { signIn } = useAuth(); 
+  const router = useRouter();
 
-  // 2. FUNÇÃO DE LOGIN
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert("Erro", "Por favor, preencha todos os campos.");
@@ -23,9 +24,8 @@ export default function Login() {
     try {
       setLoading(true);
       await signIn(email, password);
-      
-      // Se o login der certo, o AuthContext atualiza o 'user' 
-      // e você pode redirecionar para a Home
+      // O redirecionamento automático deve acontecer no _layout.tsx
+      // Mas forçamos aqui para garantir se o bumerangue persistir:
       router.replace('/(tabs)/home'); 
     } catch (error: any) {
       Alert.alert("Falha no Login", error.message);
@@ -43,7 +43,7 @@ export default function Login() {
         
         <View style={styles.header}>
           <View style={styles.iconCircle}>
-            <FontAwesome5 name="lock" size={70} color="#032ad7" />
+            <FontAwesome5 name="lock" size={50} color="#032ad7" />
           </View>
           <Text style={styles.title}>Entrar</Text>
           <Text style={styles.subtitle}>Acesse sua conta com e-mail e senha.</Text>
@@ -57,7 +57,6 @@ export default function Login() {
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
-            autoCorrect={false}
           />
 
           <TextInput
@@ -65,13 +64,12 @@ export default function Login() {
             placeholder="Senha"
             value={password}
             onChangeText={setPassword}
-            secureTextEntry={true}
+            secureTextEntry
           />
         </View>
 
-        {/* Botão Entrar Conectado */}
         <TouchableOpacity 
-          style={styles.button} 
+          style={[styles.button, loading && { opacity: 0.7 }]} 
           onPress={handleLogin}
           disabled={loading}
         >
@@ -82,7 +80,7 @@ export default function Login() {
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Não tem uma conta? </Text>
-          <TouchableOpacity onPress={() => router.push('/auth/signup')}>
+          <TouchableOpacity onPress={() => router.push('/(auth)/signup' as any)}>
             <Text style={styles.linkText}>Cadastre-se.</Text>
           </TouchableOpacity>
         </View>
@@ -91,21 +89,20 @@ export default function Login() {
     </KeyboardAvoidingView>
   );
 }
-// Estilos mantidos similares ao design original
+
 const styles = StyleSheet.create({
   container: { flexGrow: 1, backgroundColor: '#FFF', padding: 20 },
-  header: { alignItems: 'center', marginTop: 60, marginBottom: 40 },
-  // Estilo para o círculo ao redor do ícone
+  header: { alignItems: 'center', marginTop: 40, marginBottom: 30 },
   iconCircle: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: '#F0F3FF', // Azul bem clarinho de fundo
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#F0F3FF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 10,
   },
-  title: { fontSize: 32, fontWeight: 'bold', color: '#000', alignSelf: 'flex-start', marginTop: 20 },
+  title: { fontSize: 32, fontWeight: 'bold', color: '#000', alignSelf: 'flex-start' },
   subtitle: { fontSize: 16, color: '#71717A', alignSelf: 'flex-start', marginTop: 5 },
   form: { gap: 15, marginBottom: 25 },
   input: {

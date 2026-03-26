@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { getUserByEmail, createUser, User, initDatabase } from "../database/database";
+import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import { createUser, getUserByEmail, initDatabase, User } from "../database/database";
 
 interface AuthContextData {
   user: User | null;
@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error("Este e-mail já está cadastrado.");
       }
 
-      const userId = await createUser({ 
+      const userId = await createUser({
         name,
         email,
         password,
@@ -75,6 +75,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // 4. Função de Sair
   function signOut() {
+    console.log("Limpando usuário..."); // Mesmo sem ver, o comando ajuda o JS
     setUser(null);
   }
 

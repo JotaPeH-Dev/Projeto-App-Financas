@@ -18,6 +18,8 @@ export default function Home() {
   const { signOut, user } = useAuth(); // Pegamos o signOut do seu contexto
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState([]);
+  
+
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1000);
@@ -25,27 +27,9 @@ export default function Home() {
   }, []);
 
   // Função de Logout
-  const handleLogout = () => {
-    Alert.alert(
-      "Sair",
-      "Deseja realmente sair da sua conta?",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Sair",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await signOut(); // Limpa o estado de autenticação
-              router.replace("/(auth)/login"); // Volta para a tela de login (ou index)
-            } catch (error) {
-              Alert.alert("Erro", "Não foi possível sair.");
-            }
-          }
-        }
-      ]
-    );
-  };
+  const handleLogout = async () => {
+  await signOut(); // O setUser(null) aqui vai fazer o Layout lá de cima te expulsar na hora!
+};
 
   if (loading) {
     return (
