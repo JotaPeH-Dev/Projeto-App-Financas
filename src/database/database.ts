@@ -110,10 +110,28 @@ export const initDatabase = async () => {
       console.log('Índice de data criado com sucesso');
 
       console.log('Banco de dados inicializado com sucesso!');
+      resolve();db.runSync('CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);');
+      console.log('Índice de data criado com sucesso');
+
+      // ========== ADICIONE ESTE BLOCO AQUI ==========
+      try {
+        // Altere 'joao@gmail.com' para o e-mail que você usa para logar no app
+        db.runSync(
+          "UPDATE users SET is_admin = 1 WHERE email = 'joao@gmail.com';"
+        );
+        console.log('Permissão de Admin atualizada para o desenvolvedor.');
+      } catch (e) {
+        console.warn('Não foi possível atualizar admin (usuário pode não existir ainda):', e);
+      }
+      // ==============================================
+
+      console.log('Banco de dados inicializado com sucesso!');
       resolve();
+      
     } catch (error) {
       console.error('Erro na transação de inicialização:', error);
       reject(error);
+      
     }
   });
 };

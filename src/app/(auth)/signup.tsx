@@ -1,8 +1,10 @@
+import { InputPassword } from '@/Components/InputPassword';
 import { MaterialIcons } from '@expo/vector-icons';
+import { zodResolver } from "@hookform/resolvers/zod"; // Usando Zod como no seu schema
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
+import { useForm, Controller } from "react-hook-form";
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -10,132 +12,130 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
+  Alert
 } from 'react-native';
-import { useAuth } from '../../contexts/AuthContext'; 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useForm } from "react-hook-form";
-import { signupSchema } from "../../Utils/schema"; 
-import { createUser } from '@/src/database/database';
+import { useAuth } from '../../contexts/AuthContext';
+import { signupSchema } from "../../Utils/schema"; // Importando seu schema do Zod
 
 export default function Register() {
   const router = useRouter();
-  const { signUp } = useAuth(); // Sua função de cadastro do AuthContext
+  const { signUp } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
 
-  // Configuração do React Hook Form com Zod
-  const { control, handleSubmit, formState: { errors } } = useForm({
-    resolver: zodResolver(signupSchema),
-    defaultValues: {
-      name: '',
-      email: '',
-      password: '',
-    }
+  // 1. CORREÇÃO: useForm configurado corretamente com Zod
+  const {
+    control,
+    handleSubmit,
+    formState: { errors }
+  } = useForm({
+    resolver: zodResolver(signupSchema) // Use o zodResolver aqui diretamente
   });
 
-  // Função que é chamada quando o botão é clicado E os dados estão válidos
-  const handleRegister = async () => {
-  console.log("Valores atuais:", { name, email, password }); // Adicione esse log para testar!
-
-  if (!name || !email || !password) {
-    Alert.alert("Erro", "Preencha todos os campos.");
-    return; // O código para aqui se name, email ou password estiverem vazios
-  }
-
-  try {
-    // 1. Chama a função que insere no SQLite
-    await createUser({ 
-  name, 
-  email, 
-  password, 
-  is_admin: false // Adicionei o is_admin pois sua função usa user.is_admin
-});
-    
-    Alert.alert("Sucesso!", "Usuário cadastrado com sucesso!", [
-      { text: "Ir para Login", onPress: () => router.replace("/(auth)/" as any) }
-    ]);
-  } catch (error) {
-    Alert.alert("Erro", "Não foi possível cadastrar. O e-mail pode já existir.");
-  }
-};
+  const handleRegister = async (data: any) => {
+    try {
+      setLoading(true);
+      // data contém: name, email, password, confirmPassword
+      await signUp(data.name, data.email, data.password);
+      Alert.alert("Sucesso", "Conta criada com sucesso!");
+      router.replace('/'); 
+    } catch (error: any) {
+      console.log(error);
+      Alert.alert("Erro", error.message || "Falha ao cadastrar.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <View style={styles.iconCircle}>
-            {/* Ícone idêntico ao da foto */}
-            <MaterialIcons name="person-add" size={80} color="#032ad7" />
+            <MaterialIcons name="person-add" size={60} color="#032ad7" />
           </View>
-          <TouchableOpacity onPress={handleRegister}>
           <Text style={styles.title}>Cadastrar</Text>
-          </TouchableOpacity>
           <Text style={styles.subtitle}>Crie sua conta para acessar.</Text>
         </View>
 
         <View style={styles.form}>
-          {/* CAMPO NOME */}
+          {/* NOME */}
           <Controller
             control={control}
             name="name"
             render={({ field: { onChange, value } }) => (
-              <TextInput
-                style={[styles.input, errors.name && styles.inputError]} // Borda vermelha se houver erro
-                placeholder="Nome Completo"
-                value={value}
-                onChangeText={onChange}
-              />
+              <View>
+                <TextInput
+                  style={[styles.input, errors.name && styles.inputError]}
+                  placeholder="Nome Completo"
+                  value={value}
+                  onChangeText={onChange}
+                />
+                {errors.name && <Text style={styles.errorText}>{errors.name.message as string}</Text>}
+              </View>
             )}
           />
-          {/* Exibe mensagem de erro do Zod */}
-          {errors.name && <Text style={styles.errorText}>{errors.name.message as string}</Text>}
 
-          {/* CAMPO E-MAIL */}
+          {/* E-MAIL */}
           <Controller
             control={control}
             name="email"
             render={({ field: { onChange, value } }) => (
-              <TextInput
-                style={[styles.input, errors.email && styles.inputError]}
-                placeholder="E-mail"
-                value={value}
-                onChangeText={onChange}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
+              <View>
+                <TextInput
+                  style={[styles.input, errors.email && styles.inputError]}
+                  placeholder="E-mail"
+                  value={value}
+                  onChangeText={onChange}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+                {errors.email && <Text style={styles.errorText}>{errors.email.message as string}</Text>}
+              </View>
             )}
           />
-          {errors.email && <Text style={styles.errorText}>{errors.email.message as string}</Text>}
 
-          {/* CAMPO SENHA */}
+          {/* SENHA */}
           <Controller
             control={control}
             name="password"
             render={({ field: { onChange, value } }) => (
-              <TextInput
-                style={[styles.input, errors.password && styles.inputError]}
-                placeholder="Senha (mín. 6 caracteres)"
-                value={value}
-                onChangeText={onChange}
-                secureTextEntry // Esconde os caracteres
-              />
+              <View>
+                <InputPassword
+                  placeholder="Senha (mín. 6 caracteres)"
+                  value={value}
+                  onChangeText={onChange}
+                  // Se o seu componente InputPassword aceitar a prop 'error', passe-a aqui
+                />
+                {errors.password && <Text style={styles.errorText}>{errors.password.message as string}</Text>}
+              </View>
             )}
           />
-          {errors.password && <Text style={styles.errorText}>{errors.password.message as string}</Text>}
+
+          {/* CONFIRMAR SENHA */}
+          <Controller
+            control={control}
+            name="confirmPassword"
+            render={({ field: { onChange, value } }) => (
+              <View>
+                <InputPassword
+                  placeholder="Confirmar Senha"
+                  value={value}
+                  onChangeText={onChange}
+                />
+                {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword.message as string}</Text>}
+              </View>
+            )}
+          />
         </View>
 
-        {/* BOTÃO CADASTRAR */}
-        {/* O handleSubmit verifica a validação antes de chamar handleRegister */}
         <TouchableOpacity
-          style={[styles.button, loading && { opacity: 0.7 }]} // Opacidade menor se estiver carregando
+          style={[styles.button, loading && { opacity: 0.7 }]}
           onPress={handleSubmit(handleRegister)}
-          disabled={loading} // Desativa o botão enquanto carrega
+          disabled={loading}
         >
           <Text style={styles.buttonText}>
             {loading ? "Carregando..." : "Cadastrar"}
@@ -157,79 +157,76 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     backgroundColor: '#FFF',
-    padding: 20 
+    padding: 20,
+    justifyContent: 'center'
   },
   header: {
     alignItems: 'center',
-    marginTop: 40,
-    marginBottom: 30 
+    marginBottom: 30
   },
   iconCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     backgroundColor: '#F0F3FF',
     justifyContent: 'center',
-    alignItems: 'center' 
+    alignItems: 'center'
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#000',
-    alignSelf: 'flex-start',
-    marginTop: 20 
+    marginTop: 15
   },
   subtitle: {
     fontSize: 16,
     color: '#71717A',
-    alignSelf: 'flex-start',
-    marginTop: 5 
+    marginTop: 5
   },
   form: {
-    gap: 5,
-    marginBottom: 25 
-  }, // Gap menor para caber os erros
+    gap: 15, // Espaçamento entre os blocos de input
+    marginBottom: 25
+  },
   input: {
     backgroundColor: '#FBFBFB',
     borderWidth: 1,
     borderColor: '#E4E4E7',
     borderRadius: 12,
-    padding: 18,
-    fontSize: 16 
+    padding: 15,
+    fontSize: 16
   },
   inputError: {
-    borderColor: '#EF4444' 
-  }, // Estilo para campo com erro
+    borderColor: '#EF4444'
+  },
   errorText: {
     color: '#EF4444',
     fontSize: 12,
-    marginBottom: 10,
-    marginLeft: 5 
-  }, // Estilo da mensagem de erro
+    marginTop: 4,
+    marginLeft: 5
+  },
   button: {
     backgroundColor: '#032ad7',
     borderRadius: 12,
-    padding: 18,
-    alignItems: 'center' 
+    padding: 16,
+    alignItems: 'center'
   },
   buttonText: {
     color: '#FFF',
     fontSize: 18,
-    fontWeight: 'bold' 
+    fontWeight: 'bold'
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 20,
-    marginBottom: 40 
+    marginTop: 20
   },
   footerText: {
     fontSize: 14,
-    color: '#71717A' 
+    color: '#71717A'
   },
   linkText: {
     fontSize: 14,
     color: '#032ad7',
-    fontWeight: 'bold' 
+    fontWeight: 'bold'
   },
 });
