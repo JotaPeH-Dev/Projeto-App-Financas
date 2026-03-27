@@ -310,37 +310,30 @@ export const deleteUser = (id: number) => {
 // ========== FUNÇÕES PARA TRANSAÇÕES ==========
 
 // Criar transação (Renomeada para addTransaction para alinhar com a Home)
-export const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
-  return new Promise<number>(async (resolve, reject) => {
-    if (isWeb) {
-      reject(new Error('Criação de transação não suportada no web (use mobile).'));
-      return;
-    }
+export const addTransaction = async (transaction: {
+  label: string;
+  value: number;
+  type: string;
+  date: string;
+  user_id: number;
+}) => {
+  const database = await openDb();
 
-    // Usando a sua função openDb já existente no arquivo
-    const database = await openDb();
+  if (!database) {
+    throw new Error('Banco de dados não inicializado.');
+  }
 
-    if (!database) {
-      reject(new Error('Banco de dados não inicializado.'));
-      return;
-    }
+  try {
+    const result = database.runSync(
+      'INSERT INTO transactions (label, value, type, date, user_id) VALUES (?, ?, ?, ?, ?);',
+      [transaction.label, transaction.value, transaction.type, transaction.date, transaction.user_id]
+    );
 
-    try {
-      const result = database.runSync(
-        'INSERT INTO transactions (label, value, type, date, user_id) VALUES (?, ?, ?, ?, ?);',
-        [transaction.label, transaction.value, transaction.type, transaction.date, transaction.user_id]
-      );
-
-      if (result.lastInsertRowId) {
-        resolve(result.lastInsertRowId);
-      } else {
-        reject(new Error('Falha ao inserir transação'));
-      }
-    } catch (error) {
-      console.error('Erro ao criar transação:', error);
-      reject(error);
-    }
-  });
+    return result.lastInsertRowId;
+  } catch (error) {
+    console.error('Erro ao criar transação:', error);
+    throw error;
+  }
 };
 
 // Mantenha a createTransaction como um apelido (alias) para não quebrar outros arquivos caso existam

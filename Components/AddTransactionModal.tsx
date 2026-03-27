@@ -1,87 +1,89 @@
 import React, { useState } from 'react';
-import { Modal, View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
-import { createTransaction } from "src/database/database";
-import { useAuth } from "src/contexts/AuthContext";
+import { Alert, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useAuth } from 'src/contexts/AuthContext';
+import { addTransaction } from 'src/database/database';
 
 interface Props {
   visible: boolean;
   onClose: () => void;
-  onSuccess: () => void; // Para recarregar a lista na Home
+  onSuccess: () => void; // Para atualizar a lista na Home
 }
 
 export function AddTransactionModal({ visible, onClose, onSuccess }: Props) {
   const { user } = useAuth();
-  const [label, setLabel] = useState('');
-  const [value, setValue] = useState('');
-  const [type, setType] = useState<'income' | 'expense'>('income');
+  const [description, setDescription] = useState('');
+  const [amount, setAmount] = useState('');
+  const [type, setType] = useState<'income' | 'expense'>('expense');
 
-  async function handleSave() {
-    if (!label || !value || !user?.id) {
-      Alert.alert("Erro", "Preencha todos os campos.");
-      return;
-    }
-
-    try {
-      await createTransaction({
-        label,
-        value: parseFloat(value.replace(',', '.')),
-        type,
-        date: new Date().toISOString(),
-        user_id: user.id
-      });
-
-      Alert.alert("Sucesso", "Transação salva!");
-      setLabel('');
-      setValue('');
-      onSuccess();
-      onClose();
-    } catch (error) {
-      Alert.alert("Erro", "Não foi possível salvar.");
-    }
+  const handleSave = async () => {
+  if (!description || !amount) {
+    Alert.alert("Erro", "Preencha todos os campos.");
+    return;
   }
+
+  try {
+    const numericValue = parseFloat(amount.replace(',', '.'));
+
+    // PASSANDO COMO UM ÚNICO OBJETO (O ARGUMENTO QUE ELE ESPERA)
+    await addTransaction({
+      label: description,      // Mapeia 'description' para 'label'
+      value: numericValue,     // Mapeia 'amount' para 'value'
+      type: type,
+      date: new Date().toISOString(),
+      user_id: Number(user?.id)
+    });
+
+    Alert.alert("Sucesso", "Transação salva!");
+    onSuccess(); 
+    onClose();
+  } catch (error) {
+    console.error(error);
+    Alert.alert("Erro", "Falha ao salvar no banco.");
+  }
+};
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.overlay}>
         <View style={styles.content}>
-          <Text style={styles.title}>Nova Transação</Text>
+          <Text style={styles.title}>Nova Movimentação</Text>
 
-          <TextInput 
-            placeholder="Descrição (ex: Aluguel)" 
-            style={styles.input} 
-            value={label}
-            onChangeText={setLabel}
+          <TextInput
+            style={styles.input}
+            placeholder="Descrição (ex: Almoço)"
+            value={description}
+            onChangeText={setDescription}
           />
 
-          <TextInput 
-            placeholder="Valor (0,00)" 
-            keyboardType="numeric" 
-            style={styles.input} 
-            value={value}
-            onChangeText={setValue}
+          <TextInput
+            style={styles.input}
+            placeholder="Valor (ex: 50.00)"
+            keyboardType="numeric"
+            value={amount}
+            onChangeText={setAmount}
           />
 
           <View style={styles.typeContainer}>
-            <TouchableOpacity 
-              style={[styles.typeButton, type === 'income' && styles.incomeActive]} 
+            <TouchableOpacity
+              style={[styles.typeButton, type === 'income' && styles.incomeActive]}
               onPress={() => setType('income')}
             >
-              <Text style={type === 'income' ? styles.whiteText : null}>Receita</Text>
+              <Text style={type === 'income' ? styles.whiteText : styles.blackText}>Entrada</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={[styles.typeButton, type === 'expense' && styles.expenseActive]} 
+            <TouchableOpacity
+              style={[styles.typeButton, type === 'expense' && styles.expenseActive]}
               onPress={() => setType('expense')}
             >
-              <Text style={type === 'expense' ? styles.whiteText : null}>Despesa</Text>
+              <Text style={type === 'expense' ? styles.whiteText : styles.blackText}>Saída</Text>
             </TouchableOpacity>
           </View>
 
           <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-            <Text style={styles.whiteText}>Salvar</Text>
+            <Text style={styles.saveButtonText}>Confirmar</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={onClose}>
+          <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
             <Text style={styles.cancelText}>Cancelar</Text>
           </TouchableOpacity>
         </View>
@@ -91,15 +93,18 @@ export function AddTransactionModal({ visible, onClose, onSuccess }: Props) {
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  content: { backgroundColor: '#FFF', padding: 25, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
-  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 20 },
-  input: { backgroundColor: '#F4F4F5', padding: 15, borderRadius: 10, marginBottom: 15 },
-  typeContainer: { flexDirection: 'row', gap: 10, marginBottom: 20 },
-  typeButton: { flex: 1, padding: 15, borderRadius: 10, alignItems: 'center', backgroundColor: '#F4F4F5' },
-  incomeActive: { backgroundColor: '#10B981' },
-  expenseActive: { backgroundColor: '#EF4444' },
-  saveButton: { backgroundColor: '#311de1', padding: 18, borderRadius: 10, alignItems: 'center' },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
+  content: { backgroundColor: '#FFF', borderRadius: 20, padding: 25 },
+  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
+  input: { backgroundColor: '#F5F5F5', padding: 15, borderRadius: 10, marginBottom: 15 },
+  typeContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
+  typeButton: { flex: 1, padding: 12, alignItems: 'center', borderRadius: 10, marginHorizontal: 5, borderWidth: 1, borderColor: '#DDD' },
+  incomeActive: { backgroundColor: '#10B981', borderColor: '#10B981' },
+  expenseActive: { backgroundColor: '#EF4444', borderColor: '#EF4444' },
   whiteText: { color: '#FFF', fontWeight: 'bold' },
-  cancelText: { textAlign: 'center', marginTop: 15, color: '#71717A' }
+  blackText: { color: '#000' },
+  saveButton: { backgroundColor: '#032ad7', padding: 15, borderRadius: 10, alignItems: 'center' },
+  saveButtonText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
+  cancelButton: { marginTop: 15, alignItems: 'center' },
+  cancelText: { color: '#71717A' }
 });

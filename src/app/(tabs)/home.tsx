@@ -18,7 +18,7 @@ export default function Home() {
   const { signOut, user } = useAuth(); // Pegamos o signOut do seu contexto
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState([]);
-  
+  const [modalVisible, setModalVisible] = useState(false);
 
 
   useEffect(() => {
