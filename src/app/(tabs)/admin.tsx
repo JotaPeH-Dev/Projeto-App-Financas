@@ -1,6 +1,6 @@
 import { FontAwesome5 } from '@expo/vector-icons';
-import { useFocusEffect, useRouter } from 'expo-router'; // Adicione useRouter
-import React, { useCallback, useEffect, useState } from 'react'; // Adicione useEffect
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -11,37 +11,16 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { useAuth } from '../../contexts/AuthContext'; // Importe seu hook de autenticação
+import { useAuth } from '../../contexts/AuthContext';
 import { deleteUser, getAllUsers } from '../../database/database';
 
 export default function AdminScreen() {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const { user, loading: authLoading } = useAuth(); // Pegue o usuário logado
-  const router = useRouter();
-
-  // --- TRAVA DE SEGURANÇA ---
-  useEffect(() => {
-    // Se o auth terminou de carregar e o usuário NÃO for admin (ou nem estiver logado)
-    if (!authLoading) {
-      if (!user || user.is_admin !== true) {
-        Alert.alert("Acesso Negado", "Você não tem permissão para acessar o painel.");
-        router.replace('/home'); // Expulsa para a Home
-      }
-    }
-  }, [user, authLoading]);
-
-  // Se estiver checando o admin, mostra o loading antes de carregar a lista
-  if (authLoading || !user?.is_admin) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#032ad7" />
-      </View>
-    );
-  }
-  // ---------------------------
-
+  // 1. Função para carregar usuários
   const loadUsers = async () => {
     try {
       setLoading(true);
@@ -54,15 +33,25 @@ export default function AdminScreen() {
     }
   };
 
+  // 2. Trava de segurança: expulsa se não for admin
+  useEffect(() => {
+    if (!authLoading && (!user || !user.is_admin)) {
+      router.replace('/home');
+    }
+  }, [user, authLoading]);
+
+  // 3. Atualiza a lista sempre que a tela ganha foco
   useFocusEffect(
     useCallback(() => {
-      loadUsers();
-    }, [])
+      if (user?.is_admin) {
+        loadUsers();
+      }
+    }, [user])
   );
 
+  // 4. Função para deletar usuário
   const handleDelete = (id: number, name: string) => {
-    // Impede que você delete a si mesmo por engano
-    if (id === Number(user.id)) {
+    if (id === Number(user?.id)) {
       Alert.alert("Aviso", "Você não pode excluir sua própria conta de administrador.");
       return;
     }
@@ -88,9 +77,17 @@ export default function AdminScreen() {
     );
   };
 
+  // 5. Verificação de bloqueio visual
+  if (authLoading || !user?.is_admin) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#032ad7" />
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* ... todo o seu código de retorno original aqui ... */}
       <View style={styles.header}>
         <Text style={styles.title}>Painel Admin</Text>
         <Text style={styles.subtitle}>Gerenciamento de banco de dados local.</Text>
@@ -115,7 +112,7 @@ export default function AdminScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.userName}>{item.name}</Text>
                 <Text style={styles.userEmail}>{item.email}</Text>
-                {item.is_admin === 1 || item.is_admin === true ? (
+                {item.is_admin ? (
                   <View style={styles.adminBadge}>
                     <Text style={styles.adminText}>ADMIN</Text>
                   </View>
@@ -139,13 +136,16 @@ export default function AdminScreen() {
   );
 }
 
-// ... seus estilos abaixo
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFF',
     paddingHorizontal: 20
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   header: {
     marginTop: 40,
