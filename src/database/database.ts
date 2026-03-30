@@ -201,6 +201,30 @@ export const getUserByEmail = (email: string) => {
   });
 };
 
+// Buscar usuário por ID
+export const getUserById = (id: number) => {
+  return new Promise<User | null>((resolve, reject) => {
+    if (!db) return resolve(null);
+    try {
+      const userRow = db.getFirstSync('SELECT * FROM users WHERE id = ?;', [id]) as UserRow | null;
+      if (userRow) {
+        resolve({
+          id: userRow.id,
+          name: userRow.name,
+          email: userRow.email,
+          password: userRow.password,
+          is_admin: userRow.is_admin === 1,
+          created_at: userRow.created_at
+        });
+      } else {
+        resolve(null);
+      }
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
 // Buscar todos os usuários
 export const getAllUsers = () => {
   return new Promise<User[]>((resolve, reject) => {
@@ -235,18 +259,16 @@ export const getAllUsers = () => {
 // Atualizar usuário
 export const updateUser = (id: number, user: Partial<Omit<User, 'id' | 'created_at'>>) => {
   return new Promise<void>((resolve, reject) => {
-    if (isWeb) {
-      resolve();
-      return;
-    }
     if (!db) {
       reject(new Error('Banco de dados não inicializado.'));
       return;
     }
+
     try {
       const updates: string[] = [];
       const values: any[] = [];
 
+      // Montagem dinâmica
       if (user.name !== undefined) {
         updates.push('name = ?');
         values.push(user.name);
@@ -269,15 +291,20 @@ export const updateUser = (id: number, user: Partial<Omit<User, 'id' | 'created_
         return;
       }
 
+      // O ID DEVE SER O ÚLTIMO VALOR DO ARRAY (para o WHERE id = ?)
       values.push(id);
 
-      db.runSync(
-        `UPDATE users SET ${updates.join(', ')} WHERE id = ?;`,
-        values
-      );
+      const query = `UPDATE users SET ${updates.join(', ')} WHERE id = ?;`;
+      
+      // LOG PARA DEBUG: Copie isso do terminal se não funcionar
+      console.log("Executando Query:", query);
+      console.log("Com valores:", values);
+
+      db.runSync(query, values); 
+      
       resolve();
     } catch (error) {
-      console.error('Erro ao atualizar usuário:', error);
+      console.error('Erro ao atualizar usuário no banco:', error);
       reject(error);
     }
   });
@@ -305,6 +332,34 @@ export const deleteUser = (id: number) => {
       reject(error);
     }
   });
+};
+
+// No seu arquivo de banco de dados (ex: database.ts)
+export const checkUserAdminStatus = async (id: number): Promise<User | null> => {
+  if (isWeb || !db) return null;
+
+  try {
+    // Usando getFirstSync que é o padrão moderno do seu código
+    const userRow = db.getFirstSync(
+      'SELECT id, name, email, is_admin FROM users WHERE id = ?;',
+      [id]
+    ) as UserRow | null;
+
+    if (userRow) {
+      return {
+        id: userRow.id,
+        name: userRow.name,
+        email: userRow.email,
+        password: '', // Não precisamos da senha para checar status
+        is_admin: userRow.is_admin === 1,
+        created_at: userRow.created_at
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Erro ao checar status de admin:', error);
+    return null;
+  }
 };
 
 // ========== FUNÇÕES PARA TRANSAÇÕES ==========

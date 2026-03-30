@@ -20,7 +20,6 @@ export default function AdminScreen() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 1. Função para carregar usuários
   const loadUsers = async () => {
     try {
       setLoading(true);
@@ -33,14 +32,12 @@ export default function AdminScreen() {
     }
   };
 
-  // 2. Trava de segurança: expulsa se não for admin
   useEffect(() => {
     if (!authLoading && (!user || !user.is_admin)) {
       router.replace('/home');
     }
   }, [user, authLoading]);
 
-  // 3. Atualiza a lista sempre que a tela ganha foco
   useFocusEffect(
     useCallback(() => {
       if (user?.is_admin) {
@@ -49,7 +46,6 @@ export default function AdminScreen() {
     }, [user])
   );
 
-  // 4. Função para deletar usuário
   const handleDelete = (id: number, name: string) => {
     if (id === Number(user?.id)) {
       Alert.alert("Aviso", "Você não pode excluir sua própria conta de administrador.");
@@ -77,7 +73,6 @@ export default function AdminScreen() {
     );
   };
 
-  // 5. Verificação de bloqueio visual
   if (authLoading || !user?.is_admin) {
     return (
       <View style={styles.center}>
@@ -109,16 +104,27 @@ export default function AdminScreen() {
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
             <View style={styles.userCard}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.userName}>{item.name}</Text>
-                <Text style={styles.userEmail}>{item.email}</Text>
-                {item.is_admin ? (
-                  <View style={styles.adminBadge}>
-                    <Text style={styles.adminText}>ADMIN</Text>
+              {/* ÁREA CLICÁVEL: NAVEGA PARA EDIÇÃO */}
+              <TouchableOpacity
+                style={{ flex: 1 }}
+                onPress={() => router.push(`/admin/edit/${item.id}`)} // Alterado aqui
+                activeOpacity={0.6}
+              >
+                <View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text style={styles.userName}>{item.name}</Text>
+                    <FontAwesome5 name="chevron-right" size={10} color="#A1A1AA" style={{ marginLeft: 8 }} />
                   </View>
-                ) : null}
-              </View>
+                  <Text style={styles.userEmail}>{item.email}</Text>
+                  {item.is_admin ? (
+                    <View style={styles.adminBadge}>
+                      <Text style={styles.adminText}>ADMIN</Text>
+                    </View>
+                  ) : null}
+                </View>
+              </TouchableOpacity>
 
+              {/* BOTÃO DE EXCLUIR */}
               <TouchableOpacity
                 style={styles.deleteButton}
                 onPress={() => handleDelete(item.id, item.name)}
@@ -137,29 +143,11 @@ export default function AdminScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFF',
-    paddingHorizontal: 20
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  header: {
-    marginTop: 40,
-    marginBottom: 20
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#18181B'
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#71717A'
-  },
+  container: { flex: 1, backgroundColor: '#FFF', paddingHorizontal: 20 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  header: { marginTop: 40, marginBottom: 20 },
+  title: { fontSize: 28, fontWeight: 'bold', color: '#18181B' },
+  subtitle: { fontSize: 14, color: '#71717A' },
   summaryCard: {
     backgroundColor: '#032ad7',
     padding: 16,
@@ -170,16 +158,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     elevation: 4,
   },
-  summaryTitle: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '600'
-  },
-  summaryNumber: {
-    color: '#FFF',
-    fontSize: 32,
-    fontWeight: 'bold'
-  },
+  summaryTitle: { color: '#FFF', fontSize: 16, fontWeight: '600' },
+  summaryNumber: { color: '#FFF', fontSize: 32, fontWeight: 'bold' },
   userCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -190,15 +170,8 @@ const styles = StyleSheet.create({
     borderColor: '#E4E4E7',
     marginBottom: 12,
   },
-  userName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#18181B'
-  },
-  userEmail: {
-    fontSize: 14,
-    color: '#71717A'
-  },
+  userName: { fontSize: 16, fontWeight: 'bold', color: '#18181B' },
+  userEmail: { fontSize: 14, color: '#71717A' },
   adminBadge: {
     backgroundColor: '#EEF2FF',
     paddingHorizontal: 6,
@@ -207,17 +180,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
     alignSelf: 'flex-start',
   },
-  adminText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#4338CA'
-  },
-  deleteButton: {
-    padding: 10
-  },
-  emptyText: {
-    textAlign: 'center',
-    marginTop: 40,
-    color: '#A1A1AA'
-  },
+  adminText: { fontSize: 10, fontWeight: 'bold', color: '#4338CA' },
+  deleteButton: { padding: 10 },
+  emptyText: { textAlign: 'center', marginTop: 40, color: '#A1A1AA' },
 });

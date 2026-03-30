@@ -1,5 +1,8 @@
 import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
-import { createUser, getUserByEmail, initDatabase, User } from "../database/database";
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Importação necessária
+import { checkUserAdminStatus, createUser, getUserByEmail, initDatabase, User } from "../database/database";
+import { updateUser } from "../database/database";
+
 
 interface AuthContextData {
   user: User | null;
@@ -15,14 +18,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // 1. Inicializa o banco de dados ao abrir o app
+  // 1. Inicializa o banco e recupera a sessão em um único fluxo
   useEffect(() => {
     async function setup() {
       try {
-        await initDatabase();
-        // Dica: Futuramente você pode usar o AsyncStorage aqui para manter o login
+        await initDatabase(); // Garante que as tabelas existam
+        
+        // Tenta recuperar o ID salvo no dispositivo
+        const idSalvo = await AsyncStorage.getItem('@AppFinancas:userId'); 
+        
+        if (idSalvo) {
+          const usuario = await checkUserAdminStatus(Number(idSalvo));
+          if (usuario) {
+            setUser(usuario); 
+            console.log(`Sessão restaurada: ${usuario.email} (Admin: ${usuario.is_admin})`);
+          }
+        }
       } catch (e) {
-        console.error("Erro ao inicializar banco:", e);
+        console.error("Erro no setup inicial:", e);
       } finally {
         setLoading(false);
       }
@@ -30,13 +43,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setup();
   }, []);
 
-  // 2. Função de Cadastro (Apenas uma agora!)
+  // 2. Função de Cadastro (Salvando sessão)
   const signUp = async (name: string, email: string, password: string) => {
     try {
       const existingUser = await getUserByEmail(email);
-      if (existingUser) {
-        throw new Error("Este e-mail já está cadastrado.");
-      }
+      if (existingUser) throw new Error("Este e-mail já está cadastrado.");
 
       const userId = await createUser({
         name,
@@ -44,6 +55,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         password,
         is_admin: false
       });
+
+      // Salva o ID para não deslogar ao fechar o app
+      await AsyncStorage.setItem('@AppFinancas:userId', String(userId));
 
       const newUser: User = {
         id: userId,
@@ -54,28 +68,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         created_at: new Date().toISOString(),
       };
 
-      setUser(newUser); // Loga o usuário automaticamente após cadastrar
+      setUser(newUser);
     } catch (error: any) {
       throw error;
     }
   };
 
-  // 3. Função de Login
+  // 3. Função de Login (Salvando sessão)
   async function signIn(email: string, password: string) {
     try {
       const foundUser = await getUserByEmail(email);
       if (!foundUser || foundUser.password !== password) {
         throw new Error("E-mail ou senha inválidos.");
       }
+
+      // Salva o ID do usuário encontrado
+      if (foundUser.id) {
+        await AsyncStorage.setItem('@AppFinancas:userId', String(foundUser.id));
+      }
+
       setUser(foundUser);
     } catch (error: any) {
       throw error;
     }
   }
 
-  // 4. Função de Sair
-  function signOut() {
-    console.log("Limpando usuário..."); // Mesmo sem ver, o comando ajuda o JS
+  // 4. Função de Sair (Limpando storage)
+  async function signOut() {
+    await AsyncStorage.removeItem('@AppFinancas:userId');
     setUser(null);
   }
 
