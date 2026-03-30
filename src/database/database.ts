@@ -1,5 +1,7 @@
 import { Platform } from 'react-native';
 import * as SQLite from 'expo-sqlite'
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 
 const isWeb = Platform.OS === 'web';
 
@@ -630,3 +632,38 @@ export async function getDatabase() {
   db = await SQLite.openDatabaseAsync('financas.db');
   return db;
 }
+// 2. ADICIONE ESTA FUNÇÃO AO FINAL DO ARQUIVO
+export const exportDatabase = async () => {
+  if (isWeb) return;
+
+  try {
+    const NOME_BANCO = 'financas.db';
+    
+    // 2. Tente acessar usando FileSystem.documentDirectory 
+    // Se o erro persistir, use FileSystem.StorageAccessFramework (em versões muito novas)
+    // Mas geralmente o padrão abaixo resolve:
+    const baseDir = FileSystem.documentDirectory; 
+
+    if (!baseDir) {
+      alert("Erro: Diretório de documentos não disponível.");
+      return;
+    }
+
+    const dbUri = `${baseDir}SQLite/${NOME_BANCO}`;
+    
+    const fileInfo = await FileSystem.getInfoAsync(dbUri);
+
+    if (!fileInfo.exists) {
+      console.log("Caminho tentado:", dbUri);
+      alert("Banco de dados não encontrado. Salve algum dado no app primeiro.");
+      return;
+    }
+
+    await Sharing.shareAsync(dbUri, {
+      mimeType: 'application/x-sqlite3',
+      dialogTitle: 'Enviar banco para o VS Code',
+    });
+  } catch (error) {
+    console.error("Erro ao exportar:", error);
+  }
+};
