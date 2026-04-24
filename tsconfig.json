@@ -15,12 +15,9 @@
     "allowJs": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "baseUrl": ".",
-    "paths": {
-      "@/*": [
-        "*"
-      ]
-    }
+   "paths": {
+      "@/*": ["./src/*"]
+}
   },
   "exclude": [
     "node_modules",
