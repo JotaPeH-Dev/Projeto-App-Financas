@@ -646,23 +646,24 @@ export default db;
 
 // 2. ADICIONE ESTA FUNÇÃO AO FINAL DO ARQUIVO
 export const exportDatabase = async () => {
-  if (isWeb) return;
+  // Verificação correta da plataforma
+  if (Platform.OS === 'web') return;
 
   try {
     const NOME_BANCO = "financas.db";
 
-    // 2. Tente acessar usando FileSystem.documentDirectory
-    // Se o erro persistir, use FileSystem.StorageAccessFramework (em versões muito novas)
-    // Mas geralmente o padrão abaixo resolve:
-    const baseDir = FileSystem.documentDirectory;
+    // 1. No Expo estável, usamos documentDirectory (uma string)
+    const baseDirAlt = (FileSystem as any).documentDirectory;
 
-    if (!baseDir) {
+    if (!baseDirAlt) {
       alert("Erro: Diretório de documentos não disponível.");
       return;
     }
 
-    const dbUri = `${baseDir}SQLite/${NOME_BANCO}`;
+    // 2. Montamos o caminho manualmente. O SQLite no Expo sempre cria a pasta /SQLite/
+    const dbUri = `${baseDirAlt}SQLite/${NOME_BANCO}`;
 
+    // 3. Usamos getInfoAsync para checar a existência
     const fileInfo = await FileSystem.getInfoAsync(dbUri);
 
     if (!fileInfo.exists) {
@@ -671,11 +672,14 @@ export const exportDatabase = async () => {
       return;
     }
 
+    // 4. Compartilhamos usando a URI (string) diretamente
     await Sharing.shareAsync(dbUri, {
       mimeType: "application/x-sqlite3",
       dialogTitle: "Enviar banco para o VS Code",
     });
+
   } catch (error) {
     console.error("Erro ao exportar:", error);
+    alert("Ocorreu um erro ao tentar exportar o banco.");
   }
 };
