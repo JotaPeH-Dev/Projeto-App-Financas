@@ -1,27 +1,20 @@
-import { Platform } from 'react-native';
-import * as SQLite from 'expo-sqlite'
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
+import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
+import * as SQLite from "expo-sqlite";
+import { Platform } from "react-native";
 
-const isWeb = Platform.OS === 'web';
+const isWeb = Platform.OS === "web";
 
-let db: SQLite.SQLiteDatabase | null = null;
-
-async function openDb() {
-  if (isWeb) return null;
-  if (db) return db;
-
-  const SQLite = await import('expo-sqlite');
-  db = SQLite.openDatabaseSync('financas.db');
-  return db;
-}
+// O Expo gerencia o diretório automaticamente agora.
+// Basta passar o nome do arquivo.
+export const db = isWeb ? null : SQLite.openDatabaseSync("financas.db");
 
 // Interface para as transações
 export interface Transaction {
   id?: number;
   label: string;
   value: number;
-  type: 'income' | 'expense';
+  type: "income" | "expense";
   date: string;
   user_id: number;
 }
@@ -66,16 +59,16 @@ interface UserRow {
 // Inicializar tabelas
 export const initDatabase = async () => {
   if (isWeb) {
-    console.warn('SQLite não está disponível no web. Usando modo de compatibilidade somente leitura.');
+    console.warn(
+      "SQLite não está disponível no web. Usando modo de compatibilidade somente leitura.",
+    );
     return;
   }
 
-  const database = await openDb();
-  if (!database) throw new Error('Banco de dados não inicializado.');
+  if (!db) throw new Error("Banco de dados não inicializado.");
 
   return new Promise<void>((resolve, reject) => {
     try {
-      db = database;
       // Criar tabela de usuários
       db.runSync(
         `CREATE TABLE IF NOT EXISTS users (
@@ -85,9 +78,9 @@ export const initDatabase = async () => {
           password TEXT NOT NULL,
           is_admin BOOLEAN DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );`
+        );`,
       );
-      console.log('Tabela users criada com sucesso');
+      console.log("Tabela users criada com sucesso");
 
       // Criar tabela de transações
       db.runSync(
@@ -100,40 +93,48 @@ export const initDatabase = async () => {
           user_id INTEGER NOT NULL,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (user_id) REFERENCES users (id)
-        );`
+        );`,
       );
-      console.log('Tabela transactions criada com sucesso');
+      console.log("Tabela transactions criada com sucesso");
 
       // Criar índices para melhor performance
-      db.runSync('CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id);');
-      console.log('Índice criado com sucesso');
+      db.runSync(
+        "CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id);",
+      );
+      console.log("Índice criado com sucesso");
 
-      db.runSync('CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);');
-      console.log('Índice de data criado com sucesso');
+      db.runSync(
+        "CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);",
+      );
+      console.log("Índice de data criado com sucesso");
 
-      console.log('Banco de dados inicializado com sucesso!');
-      resolve();db.runSync('CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);');
-      console.log('Índice de data criado com sucesso');
+      console.log("Banco de dados inicializado com sucesso!");
+      resolve();
+      db.runSync(
+        "CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);",
+      );
+      console.log("Índice de data criado com sucesso");
 
       // ========== ADICIONE ESTE BLOCO AQUI ==========
       try {
         // Altere 'joao@gmail.com' para o e-mail que você usa para logar no app
         db.runSync(
-          "UPDATE users SET is_admin = 1 WHERE email = 'joao@gmail.com';"
+          "UPDATE users SET is_admin = 1 WHERE email = 'joao@gmail.com';",
         );
-        console.log('Permissão de Admin atualizada para o desenvolvedor.');
+        console.log("Permissão de Admin atualizada para o desenvolvedor.");
       } catch (e) {
-        console.warn('Não foi possível atualizar admin (usuário pode não existir ainda):', e);
+        console.warn(
+          "Não foi possível atualizar admin (usuário pode não existir ainda):",
+          e,
+        );
       }
       // ==============================================
 
-      console.log('Banco de dados inicializado com sucesso!');
+      console.log("Banco de dados inicializado com sucesso!");
       resolve();
-      
     } catch (error) {
-      console.error('Erro na transação de inicialização:', error);
+      console.error("Erro na transação de inicialização:", error);
       reject(error);
-      
     }
   });
 };
@@ -141,28 +142,30 @@ export const initDatabase = async () => {
 // ========== FUNÇÕES PARA USUÁRIOS ==========
 
 // Criar usuário
-export const createUser = (user: Omit<User, 'id' | 'created_at'>) => {
+export const createUser = (user: Omit<User, "id" | "created_at">) => {
   return new Promise<number>((resolve, reject) => {
     if (isWeb) {
-      reject(new Error('Criação de usuário não suportada no web (use mobile).'));
+      reject(
+        new Error("Criação de usuário não suportada no web (use mobile)."),
+      );
       return;
     }
     if (!db) {
-      reject(new Error('Banco de dados não inicializado.'));
+      reject(new Error("Banco de dados não inicializado."));
       return;
     }
     try {
       const result = db.runSync(
-        'INSERT INTO users (name, email, password, is_admin) VALUES (?, ?, ?, ?);',
-        [user.name, user.email, user.password, user.is_admin ? 1 : 0]
+        "INSERT INTO users (name, email, password, is_admin) VALUES (?, ?, ?, ?);",
+        [user.name, user.email, user.password, user.is_admin ? 1 : 0],
       );
       if (result.lastInsertRowId) {
         resolve(result.lastInsertRowId);
       } else {
-        reject(new Error('Falha ao inserir usuário'));
+        reject(new Error("Falha ao inserir usuário"));
       }
     } catch (error) {
-      console.error('Erro ao criar usuário:', error);
+      console.error("Erro ao criar usuário:", error);
       reject(error);
     }
   });
@@ -176,14 +179,13 @@ export const getUserByEmail = (email: string) => {
       return;
     }
     if (!db) {
-      reject(new Error('Banco de dados não inicializado.'));
+      reject(new Error("Banco de dados não inicializado."));
       return;
     }
     try {
-      const userRow = db.getFirstSync(
-        'SELECT * FROM users WHERE email = ?;',
-        [email]
-      ) as UserRow | null;
+      const userRow = db.getFirstSync("SELECT * FROM users WHERE email = ?;", [
+        email,
+      ]) as UserRow | null;
       if (userRow) {
         resolve({
           id: userRow.id,
@@ -191,13 +193,13 @@ export const getUserByEmail = (email: string) => {
           email: userRow.email,
           password: userRow.password,
           is_admin: userRow.is_admin === 1,
-          created_at: userRow.created_at
+          created_at: userRow.created_at,
         });
       } else {
         resolve(null);
       }
     } catch (error) {
-      console.error('Erro ao buscar usuário:', error);
+      console.error("Erro ao buscar usuário:", error);
       reject(error);
     }
   });
@@ -208,7 +210,9 @@ export const getUserById = (id: number) => {
   return new Promise<User | null>((resolve, reject) => {
     if (!db) return resolve(null);
     try {
-      const userRow = db.getFirstSync('SELECT * FROM users WHERE id = ?;', [id]) as UserRow | null;
+      const userRow = db.getFirstSync("SELECT * FROM users WHERE id = ?;", [
+        id,
+      ]) as UserRow | null;
       if (userRow) {
         resolve({
           id: userRow.id,
@@ -216,7 +220,7 @@ export const getUserById = (id: number) => {
           email: userRow.email,
           password: userRow.password,
           is_admin: userRow.is_admin === 1,
-          created_at: userRow.created_at
+          created_at: userRow.created_at,
         });
       } else {
         resolve(null);
@@ -235,34 +239,37 @@ export const getAllUsers = () => {
       return;
     }
     if (!db) {
-      reject(new Error('Banco de dados não inicializado.'));
+      reject(new Error("Banco de dados não inicializado."));
       return;
     }
     try {
       const rows = db.getAllSync(
-        'SELECT * FROM users ORDER BY created_at DESC;'
+        "SELECT * FROM users ORDER BY created_at DESC;",
       ) as UserRow[];
-      const users: User[] = rows.map(userRow => ({
+      const users: User[] = rows.map((userRow) => ({
         id: userRow.id,
         name: userRow.name,
         email: userRow.email,
         password: userRow.password,
         is_admin: userRow.is_admin === 1,
-        created_at: userRow.created_at
+        created_at: userRow.created_at,
       }));
       resolve(users);
     } catch (error) {
-      console.error('Erro ao buscar usuários:', error);
+      console.error("Erro ao buscar usuários:", error);
       reject(error);
     }
   });
 };
 
 // Atualizar usuário
-export const updateUser = (id: number, user: Partial<Omit<User, 'id' | 'created_at'>>) => {
+export const updateUser = (
+  id: number,
+  user: Partial<Omit<User, "id" | "created_at">>,
+) => {
   return new Promise<void>((resolve, reject) => {
     if (!db) {
-      reject(new Error('Banco de dados não inicializado.'));
+      reject(new Error("Banco de dados não inicializado."));
       return;
     }
 
@@ -272,19 +279,19 @@ export const updateUser = (id: number, user: Partial<Omit<User, 'id' | 'created_
 
       // Montagem dinâmica
       if (user.name !== undefined) {
-        updates.push('name = ?');
+        updates.push("name = ?");
         values.push(user.name);
       }
       if (user.email !== undefined) {
-        updates.push('email = ?');
+        updates.push("email = ?");
         values.push(user.email);
       }
       if (user.password !== undefined) {
-        updates.push('password = ?');
+        updates.push("password = ?");
         values.push(user.password);
       }
       if (user.is_admin !== undefined) {
-        updates.push('is_admin = ?');
+        updates.push("is_admin = ?");
         values.push(user.is_admin ? 1 : 0);
       }
 
@@ -296,17 +303,17 @@ export const updateUser = (id: number, user: Partial<Omit<User, 'id' | 'created_
       // O ID DEVE SER O ÚLTIMO VALOR DO ARRAY (para o WHERE id = ?)
       values.push(id);
 
-      const query = `UPDATE users SET ${updates.join(', ')} WHERE id = ?;`;
-      
+      const query = `UPDATE users SET ${updates.join(", ")} WHERE id = ?;`;
+
       // LOG PARA DEBUG: Copie isso do terminal se não funcionar
       console.log("Executando Query:", query);
       console.log("Com valores:", values);
 
-      db.runSync(query, values); 
-      
+      db.runSync(query, values);
+
       resolve();
     } catch (error) {
-      console.error('Erro ao atualizar usuário no banco:', error);
+      console.error("Erro ao atualizar usuário no banco:", error);
       reject(error);
     }
   });
@@ -320,31 +327,30 @@ export const deleteUser = (id: number) => {
       return;
     }
     if (!db) {
-      reject(new Error('Banco de dados não inicializado.'));
+      reject(new Error("Banco de dados não inicializado."));
       return;
     }
     try {
-      db.runSync(
-        'DELETE FROM users WHERE id = ?;',
-        [id]
-      );
+      db.runSync("DELETE FROM users WHERE id = ?;", [id]);
       resolve();
     } catch (error) {
-      console.error('Erro ao deletar usuário:', error);
+      console.error("Erro ao deletar usuário:", error);
       reject(error);
     }
   });
 };
 
 // No seu arquivo de banco de dados (ex: database.ts)
-export const checkUserAdminStatus = async (id: number): Promise<User | null> => {
+export const checkUserAdminStatus = async (
+  id: number,
+): Promise<User | null> => {
   if (isWeb || !db) return null;
 
   try {
     // Usando getFirstSync que é o padrão moderno do seu código
     const userRow = db.getFirstSync(
-      'SELECT id, name, email, is_admin FROM users WHERE id = ?;',
-      [id]
+      "SELECT id, name, email, is_admin FROM users WHERE id = ?;",
+      [id],
     ) as UserRow | null;
 
     if (userRow) {
@@ -352,14 +358,14 @@ export const checkUserAdminStatus = async (id: number): Promise<User | null> => 
         id: userRow.id,
         name: userRow.name,
         email: userRow.email,
-        password: '', // Não precisamos da senha para checar status
+        password: "", // Não precisamos da senha para checar status
         is_admin: userRow.is_admin === 1,
-        created_at: userRow.created_at
+        created_at: userRow.created_at,
       };
     }
     return null;
   } catch (error) {
-    console.error('Erro ao checar status de admin:', error);
+    console.error("Erro ao checar status de admin:", error);
     return null;
   }
 };
@@ -374,21 +380,25 @@ export const addTransaction = async (transaction: {
   date: string;
   user_id: number;
 }) => {
-  const database = await openDb();
-
-  if (!database) {
-    throw new Error('Banco de dados não inicializado.');
+  if (!db) {
+    throw new Error("Banco de dados não inicializado.");
   }
 
   try {
-    const result = database.runSync(
-      'INSERT INTO transactions (label, value, type, date, user_id) VALUES (?, ?, ?, ?, ?);',
-      [transaction.label, transaction.value, transaction.type, transaction.date, transaction.user_id]
+    const result = db.runSync(
+      "INSERT INTO transactions (label, value, type, date, user_id) VALUES (?, ?, ?, ?, ?);",
+      [
+        transaction.label,
+        transaction.value,
+        transaction.type,
+        transaction.date,
+        transaction.user_id,
+      ],
     );
 
     return result.lastInsertRowId;
   } catch (error) {
-    console.error('Erro ao criar transação:', error);
+    console.error("Erro ao criar transação:", error);
     throw error;
   }
 };
@@ -398,32 +408,32 @@ export const createTransaction = addTransaction;
 
 // Buscar transações por usuário (Mantenha como você já tem no arquivo...)
 export const getTransactionsByUser = (userId: number) => {
-// ... resto do seu código igual
+  // ... resto do seu código igual
   return new Promise<Transaction[]>((resolve, reject) => {
     if (isWeb) {
       resolve([]);
       return;
     }
     if (!db) {
-      reject(new Error('Banco de dados não inicializado.'));
+      reject(new Error("Banco de dados não inicializado."));
       return;
     }
     try {
       const rows = db.getAllSync(
-        'SELECT * FROM transactions WHERE user_id = ? ORDER BY date DESC, created_at DESC;',
-        [userId]
+        "SELECT * FROM transactions WHERE user_id = ? ORDER BY date DESC, created_at DESC;",
+        [userId],
       ) as TransactionRow[];
-      const transactions: Transaction[] = rows.map(transactionRow => ({
+      const transactions: Transaction[] = rows.map((transactionRow) => ({
         id: transactionRow.id,
         label: transactionRow.label,
         value: transactionRow.value,
-        type: transactionRow.type as 'income' | 'expense',
+        type: transactionRow.type as "income" | "expense",
         date: transactionRow.date,
-        user_id: transactionRow.user_id
+        user_id: transactionRow.user_id,
       }));
       resolve(transactions);
     } catch (error) {
-      console.error('Erro ao buscar transações:', error);
+      console.error("Erro ao buscar transações:", error);
       reject(error);
     }
   });
@@ -437,42 +447,45 @@ export const getTransactionById = (id: number) => {
       return;
     }
     if (!db) {
-      reject(new Error('Banco de dados não inicializado.'));
+      reject(new Error("Banco de dados não inicializado."));
       return;
     }
     try {
       const transactionRow = db.getFirstSync(
-        'SELECT * FROM transactions WHERE id = ?;',
-        [id]
+        "SELECT * FROM transactions WHERE id = ?;",
+        [id],
       ) as TransactionRow | null;
       if (transactionRow) {
         resolve({
           id: transactionRow.id,
           label: transactionRow.label,
           value: transactionRow.value,
-          type: transactionRow.type as 'income' | 'expense',
+          type: transactionRow.type as "income" | "expense",
           date: transactionRow.date,
-          user_id: transactionRow.user_id
+          user_id: transactionRow.user_id,
         });
       } else {
         resolve(null);
       }
     } catch (error) {
-      console.error('Erro ao buscar transação:', error);
+      console.error("Erro ao buscar transação:", error);
       reject(error);
     }
   });
 };
 
 // Atualizar transação
-export const updateTransaction = (id: number, transaction: Partial<Omit<Transaction, 'id' | 'user_id'>>) => {
+export const updateTransaction = (
+  id: number,
+  transaction: Partial<Omit<Transaction, "id" | "user_id">>,
+) => {
   return new Promise<void>((resolve, reject) => {
     if (isWeb) {
       resolve();
       return;
     }
     if (!db) {
-      reject(new Error('Banco de dados não inicializado.'));
+      reject(new Error("Banco de dados não inicializado."));
       return;
     }
     try {
@@ -480,19 +493,19 @@ export const updateTransaction = (id: number, transaction: Partial<Omit<Transact
       const values: any[] = [];
 
       if (transaction.label !== undefined) {
-        updates.push('label = ?');
+        updates.push("label = ?");
         values.push(transaction.label);
       }
       if (transaction.value !== undefined) {
-        updates.push('value = ?');
+        updates.push("value = ?");
         values.push(transaction.value);
       }
       if (transaction.type !== undefined) {
-        updates.push('type = ?');
+        updates.push("type = ?");
         values.push(transaction.type);
       }
       if (transaction.date !== undefined) {
-        updates.push('date = ?');
+        updates.push("date = ?");
         values.push(transaction.date);
       }
 
@@ -504,12 +517,12 @@ export const updateTransaction = (id: number, transaction: Partial<Omit<Transact
       values.push(id);
 
       db.runSync(
-        `UPDATE transactions SET ${updates.join(', ')} WHERE id = ?;`,
-        values
+        `UPDATE transactions SET ${updates.join(", ")} WHERE id = ?;`,
+        values,
       );
       resolve();
     } catch (error) {
-      console.error('Erro ao atualizar transação:', error);
+      console.error("Erro ao atualizar transação:", error);
       reject(error);
     }
   });
@@ -523,17 +536,14 @@ export const deleteTransaction = (id: number) => {
       return;
     }
     if (!db) {
-      reject(new Error('Banco de dados não inicializado.'));
+      reject(new Error("Banco de dados não inicializado."));
       return;
     }
     try {
-      db.runSync(
-        'DELETE FROM transactions WHERE id = ?;',
-        [id]
-      );
+      db.runSync("DELETE FROM transactions WHERE id = ?;", [id]);
       resolve();
     } catch (error) {
-      console.error('Erro ao deletar transação:', error);
+      console.error("Erro ao deletar transação:", error);
       reject(error);
     }
   });
@@ -550,11 +560,16 @@ export const getUserStats = (userId: number) => {
     transactionCount: number;
   }>((resolve, reject) => {
     if (isWeb) {
-      resolve({ totalIncome: 0, totalExpense: 0, balance: 0, transactionCount: 0 });
+      resolve({
+        totalIncome: 0,
+        totalExpense: 0,
+        balance: 0,
+        transactionCount: 0,
+      });
       return;
     }
     if (!db) {
-      reject(new Error('Banco de dados não inicializado.'));
+      reject(new Error("Banco de dados não inicializado."));
       return;
     }
     try {
@@ -564,7 +579,7 @@ export const getUserStats = (userId: number) => {
           COALESCE(SUM(CASE WHEN type = 'expense' THEN value ELSE 0 END), 0) as total_expense,
           COUNT(*) as transaction_count
           FROM transactions WHERE user_id = ?;`,
-        [userId]
+        [userId],
       ) as StatsRow | null;
       if (statsRow) {
         const totalIncome = statsRow.total_income;
@@ -576,18 +591,18 @@ export const getUserStats = (userId: number) => {
           totalIncome,
           totalExpense,
           balance,
-          transactionCount
+          transactionCount,
         });
       } else {
         resolve({
           totalIncome: 0,
           totalExpense: 0,
           balance: 0,
-          transactionCount: 0
+          transactionCount: 0,
         });
       }
     } catch (error) {
-      console.error('Erro ao buscar estatísticas:', error);
+      console.error("Erro ao buscar estatísticas:", error);
       reject(error);
     }
   });
@@ -603,17 +618,19 @@ export const clearAllData = () => {
       return;
     }
     if (!db) {
-      reject(new Error('Banco de dados não inicializado.'));
+      reject(new Error("Banco de dados não inicializado."));
       return;
     }
     try {
-      db.runSync('DELETE FROM transactions;');
-      db.runSync('DELETE FROM users;');
-      db.runSync('DELETE FROM sqlite_sequence WHERE name IN ("users", "transactions");');
-      console.log('Dados limpos com sucesso!');
+      db.runSync("DELETE FROM transactions;");
+      db.runSync("DELETE FROM users;");
+      db.runSync(
+        'DELETE FROM sqlite_sequence WHERE name IN ("users", "transactions");',
+      );
+      console.log("Dados limpos com sucesso!");
       resolve();
     } catch (error) {
-      console.error('Erro na limpeza:', error);
+      console.error("Erro na limpeza:", error);
       reject(error);
     }
   });
@@ -627,22 +644,17 @@ export const closeDatabase = () => {
 
 export default db;
 
-export async function getDatabase() {
-  if (db) return db;
-  db = await SQLite.openDatabaseAsync('financas.db');
-  return db;
-}
 // 2. ADICIONE ESTA FUNÇÃO AO FINAL DO ARQUIVO
 export const exportDatabase = async () => {
   if (isWeb) return;
 
   try {
-    const NOME_BANCO = 'financas.db';
-    
-    // 2. Tente acessar usando FileSystem.documentDirectory 
+    const NOME_BANCO = "financas.db";
+
+    // 2. Tente acessar usando FileSystem.documentDirectory
     // Se o erro persistir, use FileSystem.StorageAccessFramework (em versões muito novas)
     // Mas geralmente o padrão abaixo resolve:
-    const baseDir = FileSystem.documentDirectory; 
+    const baseDir = FileSystem.documentDirectory;
 
     if (!baseDir) {
       alert("Erro: Diretório de documentos não disponível.");
@@ -650,7 +662,7 @@ export const exportDatabase = async () => {
     }
 
     const dbUri = `${baseDir}SQLite/${NOME_BANCO}`;
-    
+
     const fileInfo = await FileSystem.getInfoAsync(dbUri);
 
     if (!fileInfo.exists) {
@@ -660,8 +672,8 @@ export const exportDatabase = async () => {
     }
 
     await Sharing.shareAsync(dbUri, {
-      mimeType: 'application/x-sqlite3',
-      dialogTitle: 'Enviar banco para o VS Code',
+      mimeType: "application/x-sqlite3",
+      dialogTitle: "Enviar banco para o VS Code",
     });
   } catch (error) {
     console.error("Erro ao exportar:", error);
