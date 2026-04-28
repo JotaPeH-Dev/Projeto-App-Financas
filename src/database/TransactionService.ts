@@ -1,6 +1,7 @@
 import * as SQLite from "expo-sqlite";
 
 export interface Transaction {
+  cat: string;
   id: number;
   user_id: number;
   label: string;

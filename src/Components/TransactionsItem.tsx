@@ -7,6 +7,7 @@ interface TransactionItemProps {
     value: number;
     type: 'income' | 'expense' | 'create';
     date: string;
+    cat?: string; // Categoria opcional para despesas
   };
   onDelete: () => void;
 }

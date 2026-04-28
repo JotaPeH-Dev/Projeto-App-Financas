@@ -1,9 +1,11 @@
 import { useTransactions } from "@/Hook/useTransactions";
 import { useAuth } from "@/contexts/AuthContext";
 import { MaterialIcons } from "@expo/vector-icons";
-import React from "react";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import React, { useState } from "react";
 import {
   Dimensions,
+  Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -15,39 +17,69 @@ import { PieChart } from "react-native-chart-kit";
 const screenWidth = Dimensions.get("window").width;
 
 export default function Resumo() {
-  const { user } = useAuth();
-  const { transactions, balance } = useTransactions(user?.id);
+  const [date, setDate] = useState(new Date());
+  const [showPicker, setShowPicker] = useState(false);
 
-  // 🧠 Agregação de dados
-  const totalIncomes = transactions
+  const { user } = useAuth();
+  const { transactions } = useTransactions(user?.id);
+
+  const onChange = (event: any, selectedDate?: Date) => {
+    setShowPicker(false);
+    if (selectedDate) setDate(selectedDate);
+  };
+
+  const changeDate = (amount: number) => {
+    const newDate = new Date(date);
+    newDate.setDate(newDate.getDate() + amount);
+    setDate(newDate);
+  };
+
+  // --- LÓGICA DE FILTRAGEM ---
+  const transactionsOfMonth = transactions.filter((t) => {
+    const tDate = new Date(t.date);
+    return (
+      tDate.getMonth() === date.getMonth() &&
+      tDate.getFullYear() === date.getFullYear()
+    );
+  });
+
+  const transactionsOfDay = transactionsOfMonth.filter((t) => {
+    const tDate = new Date(t.date);
+    return tDate.getDate() === date.getDate();
+  });
+
+  const hasDataForDay = transactionsOfDay.length > 0;
+  const filteredTransactions = hasDataForDay
+    ? transactionsOfDay
+    : transactionsOfMonth;
+
+  const totalIncomes = filteredTransactions
     .filter((t) => t.type === "income")
     .reduce((acc, curr) => acc + curr.value, 0);
 
-  const totalExpenses = transactions
+  const totalExpenses = filteredTransactions
     .filter((t) => t.type === "expense")
     .reduce((acc, curr) => acc + curr.value, 0);
 
-  // Dados para o Gráfico
-  const chartData = [
+  const balance = totalIncomes - totalExpenses;
+
+  // --- 📊 GRÁFICO: ENTRADAS VS SAÍDAS ---
+  const mainChartData = [
     {
       name: "Entradas",
       population: totalIncomes,
-      color: "#10B981",
+      color: "#10B981", // Verde
       legendFontColor: "#71717A",
-      legendFontSize: 14,
+      legendFontSize: 12,
     },
     {
       name: "Saídas",
       population: totalExpenses,
-      color: "#EF4444",
+      color: "#EF4444", // Vermelho
       legendFontColor: "#71717A",
-      legendFontSize: 14,
+      legendFontSize: 12,
     },
   ];
-
-  const chartConfig = {
-    color: (opacity = 1) => `rgba(26, 255, 146, ${opacity})`,
-  };
 
   const formatCurrency = (value: number) => {
     return value.toLocaleString("pt-BR", {
@@ -61,53 +93,79 @@ export default function Resumo() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={styles.title}>Resumo Financeiro</Text>
 
-        {/* ÁREA DO GRÁFICO */}
+        <View style={styles.headerRow}>
+          <Pressable onPress={() => changeDate(-1)} style={styles.arrowButton}>
+            <MaterialIcons name="chevron-left" size={28} color="#032ad7" />
+          </Pressable>
+
+          <Pressable
+            style={styles.filterButton}
+            onPress={() => setShowPicker(true)}
+          >
+            <View style={{ alignItems: "center" }}>
+              <Text style={styles.filterLabel}>Filtro Ativo</Text>
+              <Text style={styles.filterText}>
+                {date.toLocaleDateString("pt-BR")}
+              </Text>
+            </View>
+          </Pressable>
+
+          <Pressable onPress={() => changeDate(1)} style={styles.arrowButton}>
+            <MaterialIcons name="chevron-right" size={28} color="#032ad7" />
+          </Pressable>
+        </View>
+
+        <Text style={styles.viewModeText}>
+          {hasDataForDay
+            ? `Exibindo o dia ${date.getDate()}`
+            : `Exibindo o mês completo`}
+        </Text>
+
+        {showPicker && (
+          <DateTimePicker
+            value={date}
+            mode="date"
+            display="default"
+            onChange={onChange}
+          />
+        )}
+
         <View style={styles.chartContainer}>
+          <Text style={styles.chartTitle}>Balanço de Entradas e Saídas</Text>
           {totalIncomes === 0 && totalExpenses === 0 ? (
             <Text style={styles.emptyChartText}>
-              Sem dados para gerar o gráfico
+              Sem movimentações neste período
             </Text>
           ) : (
             <PieChart
-              data={chartData}
+              data={mainChartData}
               width={screenWidth - 40}
               height={200}
-              chartConfig={chartConfig}
+              chartConfig={{
+                color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+              }}
               accessor={"population"}
               backgroundColor={"transparent"}
               paddingLeft={"15"}
               center={[10, 0]}
-              absolute // Mostra os valores absolutos no gráfico
+              absolute
             />
           )}
         </View>
 
-        {/* CARDS DE DETALHAMENTO */}
+        {/* CARDS RESUMO */}
         <View style={[styles.card, styles.cardIncome]}>
-          <View style={styles.cardHeader}>
-            <MaterialIcons name="arrow-upward" size={20} color="#10B981" />
-            <Text style={styles.cardLabel}>Entradas</Text>
-          </View>
+          <Text style={styles.cardLabel}>Total Entradas</Text>
           <Text style={styles.cardValue}>{formatCurrency(totalIncomes)}</Text>
         </View>
 
         <View style={[styles.card, styles.cardExpense]}>
-          <View style={styles.cardHeader}>
-            <MaterialIcons name="arrow-downward" size={20} color="#EF4444" />
-            <Text style={styles.cardLabel}>Saídas</Text>
-          </View>
+          <Text style={styles.cardLabel}>Total Saídas</Text>
           <Text style={styles.cardValue}>{formatCurrency(totalExpenses)}</Text>
         </View>
 
         <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <MaterialIcons
-              name="account-balance-wallet"
-              size={20}
-              color="#032ad7"
-            />
-            <Text style={styles.cardLabel}>Saldo Líquido</Text>
-          </View>
+          <Text style={styles.cardLabel}>Saldo Líquido</Text>
           <Text
             style={[
               styles.cardValue,
@@ -124,51 +182,74 @@ export default function Resumo() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FFF" },
-  scrollContent: {
-    paddingInline: 20,
-    paddingBlock: 30,
-  },
+  scrollContent: { paddingHorizontal: 20, paddingVertical: 30 },
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    marginBlockEnd: 25,
+    marginBottom: 20,
     color: "#18181B",
+  },
+  headerRow: { flexDirection: "row", alignItems: "center", marginBottom: 15 },
+  arrowButton: {
+    padding: 10,
+    backgroundColor: "#F4F4F5",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E4E4E7",
+  },
+  filterButton: {
+    flex: 1,
+    justifyContent: "center",
+    backgroundColor: "#F4F4F5",
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginHorizontal: 10,
+    borderWidth: 1,
+    borderColor: "#E4E4E7",
+  },
+  filterLabel: {
+    fontSize: 10,
+    color: "#71717A",
+    textTransform: "uppercase",
+    textAlign: "center",
+  },
+  filterText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#18181B",
+    textAlign: "center",
+  },
+  viewModeText: {
+    fontSize: 12,
+    color: "#71717A",
+    fontStyle: "italic",
+    textAlign: "center",
+    marginBottom: 20,
   },
   chartContainer: {
     alignItems: "center",
-    marginBlockEnd: 30,
+    marginBottom: 30,
     backgroundColor: "#F8FAFC",
     borderRadius: 20,
-    paddingBlock: 10,
+    paddingVertical: 15,
   },
-  emptyChartText: {
-    paddingBlock: 50,
-    color: "#94A3B8",
-    fontStyle: "italic",
+  chartTitle: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#71717A",
+    marginBottom: 10,
   },
+  emptyChartText: { paddingVertical: 50, color: "#94A3B8" },
   card: {
     backgroundColor: "#F4F4F5",
     borderRadius: 16,
     padding: 16,
-    marginBlockEnd: 12,
-    borderInlineWidth: 4,
-    borderInlineColor: "#D4D4D8",
+    marginBottom: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: "#D4D4D8",
   },
-  cardIncome: { borderInlineColor: "#10B981" },
-  cardExpense: { borderInlineColor: "#EF4444" },
-  cardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBlockEnd: 6,
-  },
-  cardLabel: {
-    fontSize: 14,
-    color: "#71717A",
-    marginInlineStart: 8,
-  },
-  cardValue: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#18181B",
-  },
+  cardIncome: { borderLeftColor: "#10B981" },
+  cardExpense: { borderLeftColor: "#EF4444" },
+  cardLabel: { fontSize: 13, color: "#71717A", marginBottom: 4 },
+  cardValue: { fontSize: 20, fontWeight: "bold", color: "#18181B" },
 });
