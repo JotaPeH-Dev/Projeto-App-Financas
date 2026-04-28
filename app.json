@@ -3,7 +3,7 @@
     "name": "Projeto-App-Financas",
     "slug": "projeto-app-financas",
     "version": "1.0.0",
-    "sdkVersion": "54.0.0", 
+    "sdkVersion": "54.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "projeto-financas",
@@ -24,7 +24,8 @@
       "output": "static"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true
