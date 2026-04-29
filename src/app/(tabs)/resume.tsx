@@ -16,6 +16,13 @@ import { PieChart } from "react-native-chart-kit";
 
 const screenWidth = Dimensions.get("window").width;
 
+const formatBRL = (value: number) => {
+  return value.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+};
+
 export default function Resumo() {
   const [date, setDate] = useState(new Date());
   const [showPicker, setShowPicker] = useState(false);
@@ -63,31 +70,42 @@ export default function Resumo() {
 
   const balance = totalIncomes - totalExpenses;
 
-  // --- 📊 GRÁFICO: ENTRADAS VS SAÍDAS ---
-  const mainChartData = [
-    {
-      name: "Entradas",
-      population: totalIncomes,
-      color: "#10B981", // Verde
-      legendFontColor: "#71717A",
-      legendFontSize: 12,
-    },
-    {
-      name: "Saídas",
-      population: totalExpenses,
-      color: "#EF4444", // Vermelho
-      legendFontColor: "#71717A",
-      legendFontSize: 12,
-    },
+  // --- 📊 LÓGICA DO GRÁFICO ---
+  const total = totalIncomes + totalExpenses;
+  const incomePercent =
+    total > 0 ? ((totalIncomes / total) * 100).toFixed(0) : 0;
+  const expensePercent =
+    total > 0 ? ((totalExpenses / total) * 100).toFixed(0) : 0;
+
+  // 1. Filtramos apenas as despesas (expenses) para o gráfico de categorias
+  const expensesOnly = filteredTransactions.filter((t) => t.type === "expense");
+
+  // 2. Agrupamos os valores por categoria
+  const categoryMap = expensesOnly.reduce((acc, curr) => {
+  // Se curr.category for nulo ou vazio, ele agrupa como "Outros"
+  const category = curr.category || "Outros"; 
+  acc[category] = (acc[category] || 0) + curr.value;
+  return acc;
+}, {} as Record<string, number>);
+
+  // 3. Definimos uma paleta de cores para as categorias
+  const colors = [
+    "#EF4444",
+    "#F59E0B",
+    "#3B82F6",
+    "#8B5CF6",
+    "#EC4899",
+    "#10B981",
   ];
 
-  const formatCurrency = (value: number) => {
-    return value.toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    });
-  };
-
+  // 4. Formatamos para o PieChart
+  const categoryChartData = Object.keys(categoryMap).map((category, index) => ({
+    name: category,
+    population: categoryMap[category],
+    color: colors[index % colors.length], // Gira as cores se houver muitas categorias
+    legendFontColor: "#18181B",
+    legendFontSize: 12,
+  }));
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -133,14 +151,21 @@ export default function Resumo() {
         <View style={styles.chartContainer}>
           <Text style={styles.chartTitle}>Balanço de Entradas e Saídas</Text>
           {totalIncomes === 0 && totalExpenses === 0 ? (
-            <Text style={styles.emptyChartText}>
-              Sem movimentações neste período
-            </Text>
+            <View style={styles.emptyContainer}>
+              <MaterialIcons
+                name="pie-chart-outlined"
+                size={48}
+                color="#CBD5E1"
+              />
+              <Text style={styles.emptyChartText}>
+                Sem movimentações neste período
+              </Text>
+            </View>
           ) : (
             <PieChart
-              data={mainChartData}
+              data={categoryChartData} // Agora usando os dados por categoria
               width={screenWidth - 40}
-              height={200}
+              height={160}
               chartConfig={{
                 color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
               }}
@@ -148,7 +173,7 @@ export default function Resumo() {
               backgroundColor={"transparent"}
               paddingLeft={"15"}
               center={[10, 0]}
-              absolute
+              absolute={false}
             />
           )}
         </View>
@@ -156,12 +181,12 @@ export default function Resumo() {
         {/* CARDS RESUMO */}
         <View style={[styles.card, styles.cardIncome]}>
           <Text style={styles.cardLabel}>Total Entradas</Text>
-          <Text style={styles.cardValue}>{formatCurrency(totalIncomes)}</Text>
+          <Text style={styles.cardValue}>{formatBRL(totalIncomes)}</Text>
         </View>
 
         <View style={[styles.card, styles.cardExpense]}>
           <Text style={styles.cardLabel}>Total Saídas</Text>
-          <Text style={styles.cardValue}>{formatCurrency(totalExpenses)}</Text>
+          <Text style={styles.cardValue}>{formatBRL(totalExpenses)}</Text>
         </View>
 
         <View style={styles.card}>
@@ -172,7 +197,7 @@ export default function Resumo() {
               { color: balance >= 0 ? "#18181B" : "#EF4444" },
             ]}
           >
-            {formatCurrency(balance)}
+            {formatBRL(balance)}
           </Text>
         </View>
       </ScrollView>
@@ -232,6 +257,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8FAFC",
     borderRadius: 20,
     paddingVertical: 15,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   chartTitle: {
     fontSize: 14,
@@ -239,7 +269,16 @@ const styles = StyleSheet.create({
     color: "#71717A",
     marginBottom: 10,
   },
-  emptyChartText: { paddingVertical: 50, color: "#94A3B8" },
+  emptyContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 40,
+  },
+  emptyChartText: {
+    marginTop: 10,
+    color: "#94A3B8",
+    fontSize: 14,
+  },
   card: {
     backgroundColor: "#F4F4F5",
     borderRadius: 16,

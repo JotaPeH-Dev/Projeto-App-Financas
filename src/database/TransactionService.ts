@@ -8,6 +8,7 @@ export interface Transaction {
   value: number;
   type: "income" | "expense";
   date: string;
+  category: string;
 }
 
 export interface TransactionSummary {
@@ -27,11 +28,12 @@ export async function addTransaction(
   label: string,
   value: number,
   type: "income" | "expense",
-  date: string, // Agora recebemos a data do Modal
+  date: string, 
+  category: string
 ) {
   return await db.runAsync(
-    "INSERT INTO transactions (user_id, label, value, type, date) VALUES (?, ?, ?, ?, ?)",
-    [userId, label, value, type, date],
+    "INSERT INTO transactions (user_id, label, value, type, date, category) VALUES (?, ?, ?, ?, ?, ?)",
+    [userId, label, value, type, date, category],
   );
 }
 
@@ -80,11 +82,12 @@ export async function updateTransaction(
   label: string,
   value: number,
   type: 'income' | 'expense',
-  date: string
+  date: string,
+  category: string // <-- Adicione aqui
 ) {
   return await db.runAsync(
-    'UPDATE transactions SET label = ?, value = ?, type = ?, date = ? WHERE id = ?',
-    [label, value, type, date, id]
+    'UPDATE transactions SET label = ?, value = ?, type = ?, date = ?, category = ? WHERE id = ?', // <-- Adicione category
+    [label, value, type, date, category, id]
   );
 }
 

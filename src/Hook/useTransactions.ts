@@ -30,4 +30,5 @@ export function useTransactions(userId: number | undefined) {
   useFocusEffect(useCallback(() => { fetchData(); }, [fetchData]));
 
   return { balance, chartData, transactions, loading, refresh: fetchData };
+  
 }
