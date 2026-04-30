@@ -24,16 +24,16 @@ const db = SQLite.openDatabaseSync("financas.db");
 // --- FUNÇÕES EXPORTADAS ---
 
 export async function addTransaction(
-  userId: number,
+  user_id: number,
   label: string,
   value: number,
-  type: "income" | "expense",
-  date: string, 
-  category: string
+  type: string,
+  date: string,
+  category: string, // Certifique-se de que este parâmetro existe
 ) {
   return await db.runAsync(
-    "INSERT INTO transactions (user_id, label, value, type, date, category) VALUES (?, ?, ?, ?, ?, ?)",
-    [userId, label, value, type, date, category],
+    "INSERT INTO transactions (label, value, type, date, user_id, category) VALUES (?, ?, ?, ?, ?, ?);",
+    [label, value, type, date, user_id, category], // Total de 6 itens
   );
 }
 
@@ -74,20 +74,20 @@ export async function getDataForChart(
   }));
 }
 export async function deleteTransaction(id: number) {
-  return await db.runAsync('DELETE FROM transactions WHERE id = ?', [id]);
+  return await db.runAsync("DELETE FROM transactions WHERE id = ?", [id]);
 }
 
 export async function updateTransaction(
   id: number,
   label: string,
   value: number,
-  type: 'income' | 'expense',
+  type: "income" | "expense",
   date: string,
-  category: string // <-- Adicione aqui
+  category: string, // <-- Adicione aqui
 ) {
   return await db.runAsync(
-    'UPDATE transactions SET label = ?, value = ?, type = ?, date = ?, category = ? WHERE id = ?', // <-- Adicione category
-    [label, value, type, date, category, id]
+    "UPDATE transactions SET label = ?, value = ?, type = ?, date = ?, category = ? WHERE id = ?", // <-- Adicione category
+    [label, value, type, date, category, id],
   );
 }
 
@@ -98,5 +98,5 @@ export const TransactionService = {
   getTotalBalance,
   getDataForChart,
   deleteTransaction, // Adicionado
-  updateTransaction  // Adicionado
+  updateTransaction, // Adicionado
 };

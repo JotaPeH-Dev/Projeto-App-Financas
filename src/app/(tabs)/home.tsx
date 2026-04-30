@@ -1,7 +1,8 @@
+import { getBudgetEfficiency } from "@/database/database";
 import { Transaction, TransactionService } from "@/database/TransactionService";
 import { useTransactions } from "@/Hook/useTransactions";
 import { MaterialIcons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -15,20 +16,43 @@ import {
 import { AddTransactionModal } from "../../Components/AddTransactionModal";
 import { useAuth } from "../../contexts/AuthContext";
 
+// --- UTILITÁRIO DE FORMATAÇÃO ---
+const formatBRL = (value: number) => {
+  return value.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+};
+
 export default function Home() {
   const { signOut, user } = useAuth();
   const [modalVisible, setModalVisible] = useState(false);
   const [editingTransaction, setEditingTransaction] =
     useState<Transaction | null>(null);
 
-  // Hook que busca saldo e transações
+  // Estado para armazenar apenas categorias em situação crítica (>= 80%)
+  const [criticalCategories, setCriticalCategories] = useState<any[]>([]);
+
   const { balance, transactions, loading, refresh } = useTransactions(user?.id);
+
+  // Carrega a eficiência e filtra apenas o que está no limite
+  const loadAlerts = async () => {
+    if (user?.id) {
+      const data = await getBudgetEfficiency(user.id);
+      // Filtra: só mostra na home se o gasto for 80% ou mais do limite
+      const alerts = data.filter((item: any) => item.percentage >= 80);
+      setCriticalCategories(alerts);
+    }
+  };
+
+  useEffect(() => {
+    loadAlerts();
+  }, [transactions]);
 
   const handleLogout = async () => {
     await signOut();
   };
 
-  // --- LÓGICA DE EXCLUSÃO ---
   const handleDelete = (id: number) => {
     Alert.alert("Excluir", "Deseja realmente apagar esta movimentação?", [
       { text: "Cancelar", style: "cancel" },
@@ -37,19 +61,17 @@ export default function Home() {
         style: "destructive",
         onPress: async () => {
           await TransactionService.deleteTransaction(id);
-          refresh(); // Atualiza a lista após deletar
+          refresh();
         },
       },
     ]);
   };
 
-  // --- LÓGICA DE EDIÇÃO ---
   const handleEdit = (transaction: Transaction) => {
     setEditingTransaction(transaction);
     setModalVisible(true);
   };
 
-  // Limpa o estado de edição ao fechar
   const handleCloseModal = () => {
     setEditingTransaction(null);
     setModalVisible(false);
@@ -73,15 +95,28 @@ export default function Home() {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.balance}>
-          {balance.toLocaleString("pt-BR", {
-            style: "currency",
-            currency: "BRL",
-          })}
-        </Text>
+        <Text style={styles.balance}>{formatBRL(balance)}</Text>
       </View>
 
       <View style={styles.content}>
+        {/* ALERTA INTELIGENTE: Só renderiza se houver gastos no limite */}
+        {criticalCategories.length > 0 && (
+          <View style={styles.alertCard}>
+            <View style={styles.alertHeader}>
+              <MaterialIcons name="warning" size={20} color="#EF4444" />
+              <Text style={styles.alertTitle}>Atenção ao Limite</Text>
+            </View>
+            {criticalCategories.map((item, index) => (
+              <View key={index} style={styles.alertRow}>
+                <Text style={styles.alertCategory}>{item.name}</Text>
+                <Text style={styles.alertPercent}>
+                  {item.percentage.toFixed(0)}%
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+
         <View style={styles.titleRow}>
           <Text style={styles.title}>Últimas Movimentações</Text>
           <TouchableOpacity onPress={() => setModalVisible(true)}>
@@ -96,7 +131,6 @@ export default function Home() {
             <View style={styles.item}>
               <View style={styles.itemInfo}>
                 <Text style={styles.itemLabel}>{item.label}</Text>
-                {/* Exibe a categoria salva abaixo do nome (opcional, mas ajuda na conferência) */}
                 <Text style={styles.itemCategory}>
                   {item.category || "Sem categoria"}
                 </Text>
@@ -112,8 +146,7 @@ export default function Home() {
                     { color: item.type === "income" ? "#2ecc71" : "#e74c3c" },
                   ]}
                 >
-                  {item.type === "income" ? "+" : "-"} R${" "}
-                  {item.value.toFixed(2)}
+                  {item.type === "income" ? "+" : "-"} {formatBRL(item.value)}
                 </Text>
 
                 <View style={styles.actionButtons}>
@@ -125,7 +158,6 @@ export default function Home() {
                       style={styles.icon}
                     />
                   </TouchableOpacity>
-
                   <TouchableOpacity onPress={() => handleDelete(item.id)}>
                     <MaterialIcons
                       name="delete"
@@ -145,7 +177,6 @@ export default function Home() {
         />
       </View>
 
-      {/* MODAL DE CADASTRO/EDIÇÃO */}
       <AddTransactionModal
         visible={modalVisible}
         onClose={handleCloseModal}
@@ -180,13 +211,39 @@ const styles = StyleSheet.create({
   greeting: { color: "#FFF", fontSize: 16 },
   balance: { color: "#FFF", fontSize: 32, fontWeight: "bold", marginTop: 10 },
   content: { flex: 1, paddingHorizontal: 20, paddingTop: 20 },
+
+  // Estilos do Alerta
+  alertCard: {
+    backgroundColor: "#FEF2F2",
+    padding: 15,
+    borderRadius: 12,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#FCA5A5",
+  },
+  alertHeader: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
+  alertTitle: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#B91C1C",
+    marginLeft: 8,
+  },
+  alertRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 4,
+    paddingLeft: 28,
+  },
+  alertCategory: { fontSize: 13, color: "#7F1D1D" },
+  alertPercent: { fontSize: 13, fontWeight: "bold", color: "#EF4444" },
+
   titleRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 15,
   },
-  title: { fontSize: 18, fontWeight: "bold" },
+  title: { fontSize: 18, fontWeight: "bold", color: "#1E293B" },
   item: {
     padding: 15,
     backgroundColor: "#F5F5F5",
@@ -208,12 +265,7 @@ const styles = StyleSheet.create({
   itemDate: { fontSize: 11, color: "#999", marginTop: 2 },
   itemValue: { fontSize: 16, fontWeight: "bold" },
   itemActions: { alignItems: "flex-end" },
-  actionButtons: {
-    flexDirection: "row",
-    marginTop: 8,
-  },
-  icon: {
-    marginLeft: 15,
-  },
+  actionButtons: { flexDirection: "row", marginTop: 8 },
+  icon: { marginLeft: 15 },
   emptyText: { textAlign: "center", color: "#71717A", marginTop: 20 },
 });
