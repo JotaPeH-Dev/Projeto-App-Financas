@@ -3,7 +3,6 @@ import * as Sharing from "expo-sharing";
 import * as SQLite from "expo-sqlite";
 import { Platform } from "react-native";
 
-
 const isWeb = Platform.OS === "web";
 
 export const db = isWeb ? null : SQLite.openDatabaseSync("financas.db");
@@ -88,6 +87,14 @@ export const initDatabase = async () => {
         FOREIGN KEY (user_id) REFERENCES users (id)
       );
     `);
+    // Dentro do initDatabase, após a criação das tabelas:
+    try {
+      db.runSync("ALTER TABLE transactions ADD COLUMN category TEXT;");
+      console.log("Coluna category adicionada com sucesso.");
+    } catch (e) {
+      // Se a coluna já existir, ele vai cair aqui e ignorar o erro.
+      console.log("Coluna category já existe.");
+    }
 
     // 2. Criar Índices
     db.runSync(
@@ -138,6 +145,86 @@ export const getUserByEmail = (email: string) => {
       ]) as UserRow | null;
       if (!row) return resolve(null);
       resolve({ ...row, is_admin: row.is_admin === 1 });
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+export const getUserById = (id: number): Promise<User | null> => {
+  return new Promise((resolve, reject) => {
+    if (!db) return resolve(null);
+    try {
+      const row = db.getFirstSync("SELECT * FROM users WHERE id = ?;", [id]) as UserRow | null;
+      if (!row) return resolve(null);
+      
+      // Converte o is_admin de 1/0 para boolean
+      resolve({ 
+        ...row, 
+        is_admin: row.is_admin === 1 
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+export const checkUserAdminStatus = (userId: number): Promise<boolean> => {
+  return new Promise((resolve, reject) => {
+    if (!db) return resolve(false);
+    try {
+      const row = db.getFirstSync("SELECT is_admin FROM users WHERE id = ?;", [
+        userId,
+      ]) as { is_admin: number } | null;
+      resolve(row?.is_admin === 1);
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+export const updateUser = (id: number, name: string, email: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    if (!db) return reject("DB não pronto");
+    try {
+      db.runSync(
+        "UPDATE users SET name = ?, email = ? WHERE id = ?;",
+        [name, email, id]
+      );
+      resolve();
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+// --- Funções de Gerenciamento (Admin) ---
+
+export const getAllUsers = (): Promise<User[]> => {
+  return new Promise((resolve, reject) => {
+    if (!db) return resolve([]);
+    try {
+      const rows = db.getAllSync(
+        "SELECT id, name, email, is_admin, created_at FROM users ORDER BY name ASC;"
+      ) as UserRow[];
+      
+      // Converte o is_admin de 1/0 para boolean
+      const users = rows.map(row => ({
+        ...row,
+        is_admin: row.is_admin === 1
+      }));
+      
+      resolve(users as User[]);
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
+export const deleteUser = (id: number): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    if (!db) return reject("DB não pronto");
+    try {
+      // Opcional: Impedir que o admin delete a si mesmo ou deletar transações vinculadas
+      db.runSync("DELETE FROM transactions WHERE user_id = ?;", [id]);
+      db.runSync("DELETE FROM users WHERE id = ?;", [id]);
+      resolve();
     } catch (error) {
       reject(error);
     }
@@ -207,8 +294,8 @@ export const setCategoryBudget = (
     try {
       db.runSync(
         `INSERT INTO categories_budget (user_id, category_name, limit_value) 
-         VALUES (?, ?, ?)
-         ON CONFLICT(category_name, user_id) DO UPDATE SET limit_value = excluded.limit_value;`,
+          VALUES (?, ?, ?)
+          ON CONFLICT(category_name, user_id) DO UPDATE SET limit_value = excluded.limit_value;`,
         [userId, category, limit],
       );
       resolve();

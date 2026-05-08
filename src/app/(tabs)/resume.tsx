@@ -7,7 +7,6 @@ import { useAuth } from "../../contexts/AuthContext";
 
 const screenWidth = Dimensions.get("window").width;
 
-// Utilitário de formatação
 const formatBRL = (value: number) =>
   value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -26,7 +25,6 @@ export default function Resumo() {
     loadData();
   }, [transactions]);
 
-  // Cores para o gráfico
   const colors = [
     "#032ad7",
     "#2ecc71",
@@ -48,7 +46,6 @@ export default function Resumo() {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <Text style={styles.headerTitle}>Análise de Gastos</Text>
 
-      {/* GRÁFICO DE PIZZA */}
       <View style={styles.chartContainer}>
         <PieChart
           data={chartData}
@@ -62,7 +59,6 @@ export default function Resumo() {
         />
       </View>
 
-      {/* BARRAS DE PROGRESSO (O PLANO) */}
       <View style={styles.planSection}>
         <Text style={styles.sectionTitle}>Progresso do Plano Mensal</Text>
 
@@ -106,77 +102,34 @@ export default function Resumo() {
 }
 
 const styles = StyleSheet.create({
-<<<<<<< HEAD
-  container: { 
-    flex: 1, 
-    backgroundColor: "#FFF" 
+  container: {
+    flex: 1,
+    backgroundColor: "#FFF",
+    paddingHorizontal: 20,
   },
-  scrollContent: {
-    paddingHorizontal: 20, // Era paddingInline
-    paddingVertical: 30,   // Era paddingBlock
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 25,      // Era marginBlockEnd
-=======
-  container: { flex: 1, backgroundColor: "#FFF", padding: 20 },
   headerTitle: {
     fontSize: 24,
     fontWeight: "bold",
->>>>>>> ca715708b57d9b1b0fc24342334180f1d7c2c3a6
     color: "#18181B",
     marginBottom: 20,
     paddingTop: 40,
   },
-<<<<<<< HEAD
   chartContainer: {
     alignItems: "center",
-    marginBottom: 30,      // Era marginBlockEnd
+    marginBottom: 30,
     backgroundColor: "#F8FAFC",
     borderRadius: 20,
-    paddingVertical: 10,   // Era paddingBlock
+    paddingVertical: 10,
   },
-  emptyChartText: {
-    paddingVertical: 50,   // Era paddingBlock
-    color: "#94A3B8",
-    fontStyle: "italic",
+  planSection: {
+    marginBottom: 40,
   },
-  card: {
-    backgroundColor: "#F4F4F5",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,      // Era marginBlockEnd
-    borderLeftWidth: 4,    // Era borderInlineWidth
-    borderLeftColor: "#D4D4D8", // Era borderInlineColor
-  },
-  cardIncome: { borderLeftColor: "#10B981" },
-  cardExpense: { borderLeftColor: "#EF4444" },
-  cardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 6,       // Era marginBlockEnd
-  },
-  cardLabel: {
-    fontSize: 14,
-    color: "#71717A",
-    marginLeft: 8,         // Era marginInlineStart
-  },
-  cardValue: {
-    fontSize: 20,
-=======
-  chartContainer: { alignItems: "center", marginBottom: 30 },
-  planSection: { marginBottom: 40 },
   sectionTitle: {
     fontSize: 18,
->>>>>>> ca715708b57d9b1b0fc24342334180f1d7c2c3a6
     fontWeight: "bold",
     color: "#1E293B",
     marginBottom: 20,
   },
-<<<<<<< HEAD
-});
-=======
   barWrapper: {
     marginBottom: 20,
     backgroundColor: "#F8FAFC",
@@ -206,4 +159,3 @@ const styles = StyleSheet.create({
   },
   emptyText: { textAlign: "center", color: "#94A3B8", marginTop: 20 },
 });
->>>>>>> ca715708b57d9b1b0fc24342334180f1d7c2c3a6
