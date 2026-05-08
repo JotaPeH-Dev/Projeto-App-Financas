@@ -123,26 +123,29 @@ export default function Resumo() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FFF" },
+  container: { 
+    flex: 1, 
+    backgroundColor: "#FFF" 
+  },
   scrollContent: {
-    paddingInline: 20,
-    paddingBlock: 30,
+    paddingHorizontal: 20, // Era paddingInline
+    paddingVertical: 30,   // Era paddingBlock
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    marginBlockEnd: 25,
+    marginBottom: 25,      // Era marginBlockEnd
     color: "#18181B",
   },
   chartContainer: {
     alignItems: "center",
-    marginBlockEnd: 30,
+    marginBottom: 30,      // Era marginBlockEnd
     backgroundColor: "#F8FAFC",
     borderRadius: 20,
-    paddingBlock: 10,
+    paddingVertical: 10,   // Era paddingBlock
   },
   emptyChartText: {
-    paddingBlock: 50,
+    paddingVertical: 50,   // Era paddingBlock
     color: "#94A3B8",
     fontStyle: "italic",
   },
@@ -150,21 +153,21 @@ const styles = StyleSheet.create({
     backgroundColor: "#F4F4F5",
     borderRadius: 16,
     padding: 16,
-    marginBlockEnd: 12,
-    borderInlineWidth: 4,
-    borderInlineColor: "#D4D4D8",
+    marginBottom: 12,      // Era marginBlockEnd
+    borderLeftWidth: 4,    // Era borderInlineWidth
+    borderLeftColor: "#D4D4D8", // Era borderInlineColor
   },
-  cardIncome: { borderInlineColor: "#10B981" },
-  cardExpense: { borderInlineColor: "#EF4444" },
+  cardIncome: { borderLeftColor: "#10B981" },
+  cardExpense: { borderLeftColor: "#EF4444" },
   cardHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBlockEnd: 6,
+    marginBottom: 6,       // Era marginBlockEnd
   },
   cardLabel: {
     fontSize: 14,
     color: "#71717A",
-    marginInlineStart: 8,
+    marginLeft: 8,         // Era marginInlineStart
   },
   cardValue: {
     fontSize: 20,
