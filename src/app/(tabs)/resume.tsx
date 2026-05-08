@@ -1,128 +1,112 @@
+import { getBudgetEfficiency } from "@/database/database";
 import { useTransactions } from "@/Hook/useTransactions";
-import { useAuth } from "@/contexts/AuthContext";
-import { MaterialIcons } from "@expo/vector-icons";
-import React from "react";
-import {
-  Dimensions,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import React, { useEffect, useState } from "react";
+import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
 import { PieChart } from "react-native-chart-kit";
+import { useAuth } from "../../contexts/AuthContext";
 
 const screenWidth = Dimensions.get("window").width;
 
+// Utilitário de formatação
+const formatBRL = (value: number) =>
+  value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
 export default function Resumo() {
   const { user } = useAuth();
-  const { transactions, balance } = useTransactions(user?.id);
+  const { transactions } = useTransactions(user?.id);
+  const [efficiencyData, setEfficiencyData] = useState<any[]>([]);
 
-  // 🧠 Agregação de dados
-  const totalIncomes = transactions
-    .filter((t) => t.type === "income")
-    .reduce((acc, curr) => acc + curr.value, 0);
+  useEffect(() => {
+    const loadData = async () => {
+      if (user?.id) {
+        const data = await getBudgetEfficiency(user.id);
+        setEfficiencyData(data);
+      }
+    };
+    loadData();
+  }, [transactions]);
 
-  const totalExpenses = transactions
-    .filter((t) => t.type === "expense")
-    .reduce((acc, curr) => acc + curr.value, 0);
-
-  // Dados para o Gráfico
-  const chartData = [
-    {
-      name: "Entradas",
-      population: totalIncomes,
-      color: "#10B981",
-      legendFontColor: "#71717A",
-      legendFontSize: 14,
-    },
-    {
-      name: "Saídas",
-      population: totalExpenses,
-      color: "#EF4444",
-      legendFontColor: "#71717A",
-      legendFontSize: 14,
-    },
+  // Cores para o gráfico
+  const colors = [
+    "#032ad7",
+    "#2ecc71",
+    "#f1c40f",
+    "#e67e22",
+    "#e74c3c",
+    "#9b59b6",
   ];
 
-  const chartConfig = {
-    color: (opacity = 1) => `rgba(26, 255, 146, ${opacity})`,
-  };
-
-  const formatCurrency = (value: number) => {
-    return value.toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    });
-  };
+  const chartData = efficiencyData.map((item, index) => ({
+    name: item.name,
+    population: item.totalSpent,
+    color: colors[index % colors.length],
+    legendFontColor: "#7F7F7F",
+    legendFontSize: 12,
+  }));
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>Resumo Financeiro</Text>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <Text style={styles.headerTitle}>Análise de Gastos</Text>
 
-        {/* ÁREA DO GRÁFICO */}
-        <View style={styles.chartContainer}>
-          {totalIncomes === 0 && totalExpenses === 0 ? (
-            <Text style={styles.emptyChartText}>
-              Sem dados para gerar o gráfico
-            </Text>
-          ) : (
-            <PieChart
-              data={chartData}
-              width={screenWidth - 40}
-              height={200}
-              chartConfig={chartConfig}
-              accessor={"population"}
-              backgroundColor={"transparent"}
-              paddingLeft={"15"}
-              center={[10, 0]}
-              absolute // Mostra os valores absolutos no gráfico
-            />
-          )}
-        </View>
+      {/* GRÁFICO DE PIZZA */}
+      <View style={styles.chartContainer}>
+        <PieChart
+          data={chartData}
+          width={screenWidth - 40}
+          height={220}
+          chartConfig={{ color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})` }}
+          accessor={"population"}
+          backgroundColor={"transparent"}
+          paddingLeft={"15"}
+          absolute
+        />
+      </View>
 
-        {/* CARDS DE DETALHAMENTO */}
-        <View style={[styles.card, styles.cardIncome]}>
-          <View style={styles.cardHeader}>
-            <MaterialIcons name="arrow-upward" size={20} color="#10B981" />
-            <Text style={styles.cardLabel}>Entradas</Text>
-          </View>
-          <Text style={styles.cardValue}>{formatCurrency(totalIncomes)}</Text>
-        </View>
+      {/* BARRAS DE PROGRESSO (O PLANO) */}
+      <View style={styles.planSection}>
+        <Text style={styles.sectionTitle}>Progresso do Plano Mensal</Text>
 
-        <View style={[styles.card, styles.cardExpense]}>
-          <View style={styles.cardHeader}>
-            <MaterialIcons name="arrow-downward" size={20} color="#EF4444" />
-            <Text style={styles.cardLabel}>Saídas</Text>
-          </View>
-          <Text style={styles.cardValue}>{formatCurrency(totalExpenses)}</Text>
-        </View>
-
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <MaterialIcons
-              name="account-balance-wallet"
-              size={20}
-              color="#032ad7"
-            />
-            <Text style={styles.cardLabel}>Saldo Líquido</Text>
-          </View>
-          <Text
-            style={[
-              styles.cardValue,
-              { color: balance >= 0 ? "#18181B" : "#EF4444" },
-            ]}
-          >
-            {formatCurrency(balance)}
+        {efficiencyData.length === 0 ? (
+          <Text style={styles.emptyText}>
+            Nenhum gasto planejado encontrado.
           </Text>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+        ) : (
+          efficiencyData.map((item, index) => (
+            <View key={index} style={styles.barWrapper}>
+              <View style={styles.barHeader}>
+                <Text style={styles.barLabel}>{item.name}</Text>
+                <Text style={styles.barValues}>
+                  {formatBRL(item.totalSpent)} /{" "}
+                  <Text style={styles.limitText}>
+                    {formatBRL(item.limitValue)}
+                  </Text>
+                </Text>
+              </View>
+              <View style={styles.bgBar}>
+                <View
+                  style={[
+                    styles.activeBar,
+                    {
+                      width: `${Math.min(item.percentage, 100)}%`,
+                      backgroundColor:
+                        item.percentage >= 100 ? "#EF4444" : "#032ad7",
+                    },
+                  ]}
+                />
+              </View>
+              <Text style={styles.percentageText}>
+                {item.percentage.toFixed(0)}% do limite
+              </Text>
+            </View>
+          ))
+        )}
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+<<<<<<< HEAD
   container: { 
     flex: 1, 
     backgroundColor: "#FFF" 
@@ -135,8 +119,17 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 25,      // Era marginBlockEnd
+=======
+  container: { flex: 1, backgroundColor: "#FFF", padding: 20 },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+>>>>>>> ca715708b57d9b1b0fc24342334180f1d7c2c3a6
     color: "#18181B",
+    marginBottom: 20,
+    paddingTop: 40,
   },
+<<<<<<< HEAD
   chartContainer: {
     alignItems: "center",
     marginBottom: 30,      // Era marginBlockEnd
@@ -171,7 +164,46 @@ const styles = StyleSheet.create({
   },
   cardValue: {
     fontSize: 20,
+=======
+  chartContainer: { alignItems: "center", marginBottom: 30 },
+  planSection: { marginBottom: 40 },
+  sectionTitle: {
+    fontSize: 18,
+>>>>>>> ca715708b57d9b1b0fc24342334180f1d7c2c3a6
     fontWeight: "bold",
-    color: "#18181B",
+    color: "#1E293B",
+    marginBottom: 20,
   },
+<<<<<<< HEAD
 });
+=======
+  barWrapper: {
+    marginBottom: 20,
+    backgroundColor: "#F8FAFC",
+    padding: 15,
+    borderRadius: 12,
+  },
+  barHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  barLabel: { fontSize: 15, fontWeight: "600", color: "#334155" },
+  barValues: { fontSize: 13, fontWeight: "bold", color: "#032ad7" },
+  limitText: { color: "#94A3B8", fontWeight: "normal" },
+  bgBar: {
+    height: 10,
+    backgroundColor: "#E2E8F0",
+    borderRadius: 5,
+    overflow: "hidden",
+  },
+  activeBar: { height: "100%", borderRadius: 5 },
+  percentageText: {
+    fontSize: 11,
+    color: "#64748B",
+    marginTop: 5,
+    textAlign: "right",
+  },
+  emptyText: { textAlign: "center", color: "#94A3B8", marginTop: 20 },
+});
+>>>>>>> ca715708b57d9b1b0fc24342334180f1d7c2c3a6

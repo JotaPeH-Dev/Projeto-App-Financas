@@ -1,150 +1,156 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { TransactionService, Transaction } from "@/database/TransactionService"; // Importe o tipo Transaction
-import DateTimePicker from "@react-native-community/datetimepicker";
-import React, { useState, useEffect } from "react"; // Adicionado useEffect
+import { Transaction, TransactionService } from "@/database/TransactionService";
+import { MaterialIcons } from "@expo/vector-icons";
+import React, { useEffect, useState } from "react";
 import {
-  Alert,
-  Keyboard,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
 } from "react-native";
 
-interface Props {
+interface AddTransactionModalProps {
   visible: boolean;
   onClose: () => void;
   onSuccess: () => void;
   transaction?: Transaction | null;
 }
 
-export function AddTransactionModal({ visible, onClose, onSuccess, transaction }: Props) {
+const CATEGORIAS = [
+  "Alimentação",
+  "Transporte",
+  "Lazer",
+  "Saúde",
+  "Educação",
+  "Moradia",
+  "Outros",
+  "Investimentos",
+  "Salário",
+  "Freelance",
+  "Presentes",
+  "Assinaturas",
+  "Viagens",
+  "Roupas",
+];
+
+export function AddTransactionModal({
+  visible,
+  onClose,
+  onSuccess,
+  transaction,
+}: AddTransactionModalProps) {
   const { user } = useAuth();
-  const [description, setDescription] = useState("");
-  const [displayValue, setDisplayValue] = useState("R$ 0,00");
+  const [label, setLabel] = useState("");
+  const [value, setValue] = useState("0,00"); // Valor visual com máscara
+  const [rawValue, setRawValue] = useState(0); // Valor numérico real para o banco
   const [type, setType] = useState<"income" | "expense">("expense");
-  const [date, setDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [category, setCategory] = useState("Outros");
 
-  // Formata o valor para exibição em Real
-  const formatCurrency = (value: string) => {
-    const cleanValue = value.replace(/\D/g, "");
-    const amount = Number(cleanValue) / 100;
-    return amount.toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
+  // Lógica da Máscara: Direita para a Esquerda
+  const handleValueChange = (text: string) => {
+    // Remove tudo que não for dígito
+    const cleanText = text.replace(/\D/g, "");
+
+    // Converte para número (centavos)
+    const numericValue = Number(cleanText) / 100;
+
+    setRawValue(numericValue);
+
+    // Formata para o padrão BRL visualmente
+    const formatted = numericValue.toLocaleString("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     });
+
+    setValue(formatted);
   };
 
-  const handleAmountChange = (text: string) => {
-    setDisplayValue(formatCurrency(text));
-  };
-
-  const onDateChange = (_: any, selectedDate?: Date) => {
-    setShowDatePicker(false);
-    if (selectedDate) setDate(selectedDate);
-  };
-
-  // 🧠 Monitora se é edição ou nova transação
   useEffect(() => {
-    if (transaction && visible) {
-      setDescription(transaction.label);
-      // Converte o valor numérico de volta para o formato de máscara (ex: 10.50 -> 1050)
-      const valueInCents = (transaction.value * 100).toFixed(0);
-      setDisplayValue(formatCurrency(valueInCents));
+    if (transaction) {
+      setLabel(transaction.label);
+      setRawValue(transaction.value);
+      setValue(
+        transaction.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 }),
+      );
       setType(transaction.type);
-      setDate(new Date(transaction.date));
-    } else if (visible) {
-      setDescription("");
-      setDisplayValue("R$ 0,00");
+      setCategory(transaction.category || "Outros");
+    } else {
+      setLabel("");
+      setValue("0,00");
+      setRawValue(0);
       setType("expense");
-      setDate(new Date());
+      setCategory("Outros");
     }
   }, [transaction, visible]);
 
   const handleSave = async () => {
-    const numericValue = Number(displayValue.replace(/\D/g, "")) / 100;
-
-    if (!description || numericValue <= 0) {
-      Alert.alert("Atenção", "Preencha a descrição e um valor válido.");
-      return;
-    }
+    if (!label || rawValue <= 0 || !user?.id) return;
 
     try {
       if (transaction) {
-        // Lógica de ATUALIZAÇÃO
         await TransactionService.updateTransaction(
           transaction.id,
-          description,
-          numericValue,
+          label,
+          rawValue, // Enviamos o número limpo (ex: 10.50)
           type,
-          date.toISOString()
+          transaction.date,
+          category,
         );
-        Alert.alert("Sucesso", "Movimentação atualizada!");
       } else {
-        // Lógica de INSERÇÃO
         await TransactionService.addTransaction(
-          Number(user?.id),
-          description,
-          numericValue,
+          user.id,
+          label,
+          rawValue,
           type,
-          date.toISOString()
+          new Date().toISOString(),
+          category,
         );
-        Alert.alert("Sucesso", "Movimentação salva!");
       }
-
       onSuccess();
       onClose();
     } catch (error) {
-      console.error(error);
-      Alert.alert("Erro", "Falha ao processar no banco.");
+      console.error("Erro ao salvar:", error);
     }
   };
 
   return (
-    <Modal visible={visible} animationType="fade" transparent>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.overlay}>
-          <View style={styles.content}>
+    <Modal visible={visible} animationType="slide" transparent>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.overlay}
+      >
+        <View style={styles.container}>
+          <View style={styles.header}>
             <Text style={styles.title}>
-              {transaction ? "Editar Movimentação" : "Nova Movimentação"}
+              {transaction ? "Editar" : "Nova"} Movimentação
             </Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Descrição"
-              value={description}
-              onChangeText={setDescription}
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="R$ 0,00"
-              keyboardType="numeric"
-              value={displayValue}
-              onChangeText={handleAmountChange}
-            />
-
-            <TouchableOpacity
-              style={styles.input}
-              onPress={() => setShowDatePicker(true)}
-            >
-              <Text style={styles.blackText}>
-                Data: {date.toLocaleDateString("pt-BR")}
-              </Text>
+            <TouchableOpacity onPress={onClose}>
+              <MaterialIcons name="close" size={24} color="#71717A" />
             </TouchableOpacity>
+          </View>
 
-            {showDatePicker && (
-              <DateTimePicker
-                value={date}
-                mode="date"
-                display="default"
-                onChange={onDateChange}
-              />
-            )}
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <Text style={styles.labelTitle}>Descrição</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Ex: Aluguel"
+              value={label}
+              onChangeText={setLabel}
+            />
+
+            <Text style={styles.labelTitle}>Valor (R$)</Text>
+            <TextInput
+              style={[styles.input, styles.valueInput]}
+              keyboardType="numeric"
+              value={value}
+              onChangeText={handleValueChange}
+              selectTextOnFocus={false}
+            />
 
             <View style={styles.typeContainer}>
               <TouchableOpacity
@@ -154,11 +160,15 @@ export function AddTransactionModal({ visible, onClose, onSuccess, transaction }
                 ]}
                 onPress={() => setType("income")}
               >
-                <Text style={type === "income" ? styles.whiteText : styles.blackText}>
+                <Text
+                  style={[
+                    styles.typeText,
+                    type === "income" && styles.textActive,
+                  ]}
+                >
                   Entrada
                 </Text>
               </TouchableOpacity>
-
               <TouchableOpacity
                 style={[
                   styles.typeButton,
@@ -166,22 +176,46 @@ export function AddTransactionModal({ visible, onClose, onSuccess, transaction }
                 ]}
                 onPress={() => setType("expense")}
               >
-                <Text style={type === "expense" ? styles.whiteText : styles.blackText}>
+                <Text
+                  style={[
+                    styles.typeText,
+                    type === "expense" && styles.textActive,
+                  ]}
+                >
                   Saída
                 </Text>
               </TouchableOpacity>
             </View>
 
+            <Text style={styles.labelTitle}>Categoria</Text>
+            <View style={styles.categoryWrapper}>
+              {CATEGORIAS.map((cat) => (
+                <TouchableOpacity
+                  key={cat}
+                  style={[
+                    styles.categoryChip,
+                    category === cat && styles.categoryChipSelected,
+                  ]}
+                  onPress={() => setCategory(cat)}
+                >
+                  <Text
+                    style={[
+                      styles.categoryChipText,
+                      category === cat && styles.categoryChipTextSelected,
+                    ]}
+                  >
+                    {cat}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
             <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
               <Text style={styles.saveButtonText}>Confirmar</Text>
             </TouchableOpacity>
-
-            <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-              <Text style={styles.cancelText}>Cancelar</Text>
-            </TouchableOpacity>
-          </View>
+          </ScrollView>
         </View>
-      </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -190,73 +224,80 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    paddingInline: 20, // 🧠 Logical Property
+    justifyContent: "flex-end",
   },
-  content: {
+  container: {
     backgroundColor: "#FFF",
-    borderRadius: 20,
-    padding: 25,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    maxHeight: "85%",
   },
-  title: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBlockEnd: 20, // 🧠 Logical Property
-    textAlign: "center",
-  },
-  input: {
-    backgroundColor: "#F5F5F5",
-    padding: 15,
-    borderRadius: 10,
-    marginBlockEnd: 15, // 🧠 Logical Property
-    fontSize: 16,
-    justifyContent: "center",
-  },
-  typeContainer: {
+  header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBlockEnd: 20,
-  },
-  typeButton: {
-    flex: 1,
-    paddingBlock: 12, // 🧠 Logical Property
     alignItems: "center",
-    borderRadius: 10,
-    marginInline: 5,  // 🧠 Logical Property
-    borderWidth: 1,
-    borderColor: "#DDD",
+    marginBottom: 20,
   },
-  incomeActive: {
-    backgroundColor: "#10B981",
-    borderColor: "#10B981",
+  title: { fontSize: 20, fontWeight: "bold", color: "#18181B" },
+  labelTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#71717A",
+    marginBottom: 8,
+    marginTop: 12,
   },
-  expenseActive: {
-    backgroundColor: "#EF4444",
-    borderColor: "#EF4444",
-  },
-  whiteText: {
-    color: "#FFF",
-    fontWeight: "bold",
-  },
-  blackText: {
-    color: "#000",
-  },
-  saveButton: {
-    backgroundColor: "#032ad7",
-    paddingBlock: 15, // 🧠 Logical Property
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  saveButtonText: {
-    color: "#FFF",
-    fontWeight: "bold",
+  input: {
+    backgroundColor: "#F4F4F5",
+    padding: 12,
+    borderRadius: 12,
     fontSize: 16,
+    color: "#18181B",
   },
-  cancelButton: {
-    marginBlockStart: 15, // 🧠 Logical Property
-    alignItems: "center",
-  },
-  cancelText: {
+  valueInput: {
+    fontSize: 22,
+    fontWeight: "bold",
+    textAlign: "center",
     color: "#71717A",
   },
+  typeContainer: { flexDirection: "row", gap: 12, marginTop: 15 },
+  typeButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: "#F4F4F5",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E4E4E7",
+  },
+  incomeActive: { backgroundColor: "#10B981", borderColor: "#10B981" },
+  expenseActive: { backgroundColor: "#EF4444", borderColor: "#EF4444" },
+  typeText: { fontWeight: "bold", color: "#71717A" },
+  textActive: { color: "#FFF" },
+  categoryWrapper: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 8,
+  },
+  categoryChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "#F4F4F5",
+    borderWidth: 1,
+    borderColor: "#E4E4E7",
+  },
+  categoryChipSelected: { backgroundColor: "#032ad7", borderColor: "#032ad7" },
+  categoryChipText: { fontSize: 12, color: "#71717A" },
+  categoryChipTextSelected: { color: "#FFF", fontWeight: "bold" },
+  saveButton: {
+    backgroundColor: "#032ad7",
+    padding: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 30,
+    marginBottom: 20,
+  },
+  saveButtonText: { color: "#FFF", fontSize: 16, fontWeight: "bold" },
 });
