@@ -87,13 +87,13 @@ export const initDatabase = async () => {
         FOREIGN KEY (user_id) REFERENCES users (id)
       );
     `);
-    // Dentro do initDatabase, após a criação das tabelas:
+
+    // Migração de coluna antiga, se necessário
     try {
       db.runSync("ALTER TABLE transactions ADD COLUMN category TEXT;");
       console.log("Coluna category adicionada com sucesso.");
     } catch (e) {
-      // Se a coluna já existir, ele vai cair aqui e ignorar o erro.
-      console.log("Coluna category já existe.");
+      // Se a coluna já existir, ignora o erro silenciosamente
     }
 
     // 2. Criar Índices
@@ -121,275 +121,190 @@ export const initDatabase = async () => {
 };
 
 // --- Funções de Usuário ---
-export const createUser = (user: Omit<User, "id" | "created_at">) => {
-  return new Promise<number>((resolve, reject) => {
-    if (!db) return reject("DB não pronto");
-    try {
-      const result = db.runSync(
-        "INSERT INTO users (name, email, password, is_admin) VALUES (?, ?, ?, ?);",
-        [user.name, user.email, user.password, user.is_admin ? 1 : 0],
-      );
-      resolve(result.lastInsertRowId);
-    } catch (error) {
-      reject(error);
-    }
-  });
+export const createUser = async (
+  user: Omit<User, "id" | "created_at">,
+): Promise<number> => {
+  if (!db) throw new Error("DB não pronto");
+  const result = db.runSync(
+    "INSERT INTO users (name, email, password, is_admin) VALUES (?, ?, ?, ?);",
+    [user.name, user.email, user.password, user.is_admin ? 1 : 0],
+  );
+  return result.lastInsertRowId;
 };
 
-export const getUserByEmail = (email: string) => {
-  return new Promise<User | null>((resolve, reject) => {
-    if (!db) return resolve(null);
-    try {
-      const row = db.getFirstSync("SELECT * FROM users WHERE email = ?;", [
-        email,
-      ]) as UserRow | null;
-      if (!row) return resolve(null);
-      resolve({ ...row, is_admin: row.is_admin === 1 });
-    } catch (error) {
-      reject(error);
-    }
-  });
+export const getUserByEmail = async (email: string): Promise<User | null> => {
+  if (!db) return null;
+  const row = db.getFirstSync("SELECT * FROM users WHERE email = ?;", [
+    email,
+  ]) as UserRow | null;
+  if (!row) return null;
+  return { ...row, is_admin: row.is_admin === 1 };
 };
-export const getUserById = (id: number): Promise<User | null> => {
-  return new Promise((resolve, reject) => {
-    if (!db) return resolve(null);
-    try {
-      const row = db.getFirstSync("SELECT * FROM users WHERE id = ?;", [id]) as UserRow | null;
-      if (!row) return resolve(null);
-      
-      // Converte o is_admin de 1/0 para boolean
-      resolve({ 
-        ...row, 
-        is_admin: row.is_admin === 1 
-      });
-    } catch (error) {
-      reject(error);
-    }
-  });
+
+export const getUserById = async (id: number): Promise<User | null> => {
+  if (!db) return null;
+  const row = db.getFirstSync("SELECT * FROM users WHERE id = ?;", [
+    id,
+  ]) as UserRow | null;
+  if (!row) return null;
+  return { ...row, is_admin: row.is_admin === 1 };
 };
-export const checkUserAdminStatus = (userId: number): Promise<boolean> => {
-  return new Promise((resolve, reject) => {
-    if (!db) return resolve(false);
-    try {
-      const row = db.getFirstSync("SELECT is_admin FROM users WHERE id = ?;", [
-        userId,
-      ]) as { is_admin: number } | null;
-      resolve(row?.is_admin === 1);
-    } catch (error) {
-      reject(error);
-    }
-  });
+
+export const checkUserAdminStatus = async (
+  userId: number,
+): Promise<boolean> => {
+  if (!db) return false;
+  const row = db.getFirstSync("SELECT is_admin FROM users WHERE id = ?;", [
+    userId,
+  ]) as { is_admin: number } | null;
+  return row?.is_admin === 1;
 };
-export const updateUser = (id: number, name: string, email: string): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    if (!db) return reject("DB não pronto");
-    try {
-      db.runSync(
-        "UPDATE users SET name = ?, email = ? WHERE id = ?;",
-        [name, email, id]
-      );
-      resolve();
-    } catch (error) {
-      reject(error);
-    }
-  });
+
+export const updateUser = async (
+  id: number,
+  name: string,
+  email: string,
+): Promise<void> => {
+  if (!db) throw new Error("DB não pronto");
+  db.runSync("UPDATE users SET name = ?, email = ? WHERE id = ?;", [
+    name,
+    email,
+    id,
+  ]);
 };
+
 // --- Funções de Gerenciamento (Admin) ---
+export const getAllUsers = async (): Promise<User[]> => {
+  if (!db) return [];
+  const rows = db.getAllSync(
+    "SELECT id, name, email, is_admin, created_at FROM users ORDER BY name ASC;",
+  ) as UserRow[];
 
-export const getAllUsers = (): Promise<User[]> => {
-  return new Promise((resolve, reject) => {
-    if (!db) return resolve([]);
-    try {
-      const rows = db.getAllSync(
-        "SELECT id, name, email, is_admin, created_at FROM users ORDER BY name ASC;"
-      ) as UserRow[];
-      
-      // Converte o is_admin de 1/0 para boolean
-      const users = rows.map(row => ({
-        ...row,
-        is_admin: row.is_admin === 1
-      }));
-      
-      resolve(users as User[]);
-    } catch (error) {
-      reject(error);
-    }
-  });
+  return rows.map((row) => ({
+    ...row,
+    is_admin: row.is_admin === 1,
+  })) as User[];
 };
 
-export const deleteUser = (id: number): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    if (!db) return reject("DB não pronto");
-    try {
-      // Opcional: Impedir que o admin delete a si mesmo ou deletar transações vinculadas
-      db.runSync("DELETE FROM transactions WHERE user_id = ?;", [id]);
-      db.runSync("DELETE FROM users WHERE id = ?;", [id]);
-      resolve();
-    } catch (error) {
-      reject(error);
-    }
-  });
+export const deleteUser = async (id: number): Promise<void> => {
+  if (!db) throw new Error("DB não pronto");
+  db.runSync("DELETE FROM transactions WHERE user_id = ?;", [id]);
+  db.runSync("DELETE FROM users WHERE id = ?;", [id]);
 };
 
 // --- Funções de Transação ---
-
-// IMPORTANTE: Adicionado 'category' no INSERT para o Plano funcionar
-export const addTransaction = async (transaction: Transaction) => {
+export const addTransaction = async (
+  transaction: Transaction,
+): Promise<number> => {
   if (!db) throw new Error("DB não pronto");
-  try {
-    const result = db.runSync(
-      "INSERT INTO transactions (label, value, type, date, category, user_id) VALUES (?, ?, ?, ?, ?, ?);",
-      [
-        transaction.label,
-        transaction.value,
-        transaction.type,
-        transaction.date,
-        transaction.category || "Outros",
-        transaction.user_id,
-      ],
-    );
-    return result.lastInsertRowId;
-  } catch (error) {
-    console.error("Erro ao criar transação:", error);
-    throw error;
-  }
+  const result = db.runSync(
+    "INSERT INTO transactions (label, value, type, date, category, user_id) VALUES (?, ?, ?, ?, ?, ?);",
+    [
+      transaction.label,
+      transaction.value,
+      transaction.type,
+      transaction.date,
+      transaction.category || "Outros",
+      transaction.user_id,
+    ],
+  );
+  return result.lastInsertRowId;
 };
 
-export const getTransactionsByUser = (userId: number) => {
-  return new Promise<Transaction[]>((resolve, reject) => {
-    if (!db) return resolve([]);
-    try {
-      const rows = db.getAllSync(
-        "SELECT * FROM transactions WHERE user_id = ? ORDER BY date DESC, created_at DESC;",
-        [userId],
-      ) as TransactionRow[];
-      resolve(rows);
-    } catch (error) {
-      reject(error);
-    }
-  });
+export const getTransactionsByUser = async (
+  userId: number,
+): Promise<Transaction[]> => {
+  if (!db) return [];
+  return db.getAllSync(
+    "SELECT * FROM transactions WHERE user_id = ? ORDER BY date DESC, created_at DESC;",
+    [userId],
+  ) as TransactionRow[];
 };
 
-export const deleteTransaction = (id: number) => {
-  return new Promise<void>((resolve, reject) => {
-    if (!db) return resolve();
-    try {
-      db.runSync("DELETE FROM transactions WHERE id = ?;", [id]);
-      resolve();
-    } catch (error) {
-      reject(error);
-    }
-  });
+export const deleteTransaction = async (id: number): Promise<void> => {
+  if (!db) return;
+  db.runSync("DELETE FROM transactions WHERE id = ?;", [id]);
 };
 
 // --- Funções de Orçamento (Budget) ---
-
-export const setCategoryBudget = (
+export const setCategoryBudget = async (
   userId: number,
   category: string,
   limit: number,
-) => {
-  return new Promise<void>((resolve, reject) => {
-    if (!db) return reject("DB não pronto");
-    try {
-      db.runSync(
-        `INSERT INTO categories_budget (user_id, category_name, limit_value) 
-          VALUES (?, ?, ?)
-          ON CONFLICT(category_name, user_id) DO UPDATE SET limit_value = excluded.limit_value;`,
-        [userId, category, limit],
-      );
-      resolve();
-    } catch (error) {
-      reject(error);
-    }
-  });
+): Promise<void> => {
+  if (!db) throw new Error("DB não pronto");
+  db.runSync(
+    `INSERT INTO categories_budget (user_id, category_name, limit_value) 
+     VALUES (?, ?, ?)
+     ON CONFLICT(category_name, user_id) DO UPDATE SET limit_value = excluded.limit_value;`,
+    [userId, category, limit],
+  );
 };
 
-export const getBudgets = (userId: number) => {
-  return new Promise<any[]>((resolve, reject) => {
-    if (!db) return resolve([]);
-    try {
-      const rows = db.getAllSync(
-        "SELECT category_name, limit_value FROM categories_budget WHERE user_id = ?;",
-        [userId],
-      );
-      resolve(rows);
-    } catch (error) {
-      reject(error);
-    }
-  });
+export const getBudgets = async (userId: number): Promise<any[]> => {
+  if (!db) return [];
+  return db.getAllSync(
+    "SELECT category_name, limit_value FROM categories_budget WHERE user_id = ?;",
+    [userId],
+  );
 };
 
-export const getActiveCategories = (userId: number): Promise<string[]> => {
-  return new Promise((resolve, reject) => {
-    if (!db) return resolve([]);
-    try {
-      const rows = db.getAllSync(
-        "SELECT category_name FROM categories_budget WHERE user_id = ?;",
-        [userId],
-      ) as { category_name: string }[];
-      resolve(rows.map((r) => r.category_name));
-    } catch (error) {
-      reject(error);
-    }
-  });
+export const getActiveCategories = async (
+  userId: number,
+): Promise<string[]> => {
+  if (!db) return [];
+  const rows = db.getAllSync(
+    "SELECT category_name FROM categories_budget WHERE user_id = ?;",
+    [userId],
+  ) as { category_name: string }[];
+  return rows.map((r) => r.category_name);
 };
 
-export const getBudgetEfficiency = (userId: number) => {
-  return new Promise<any[]>((resolve, reject) => {
-    if (!db) return resolve([]);
-    try {
-      const rows = db.getAllSync(
-        `SELECT 
-            b.category_name as name,
-            b.limit_value as limitValue,
-            COALESCE(SUM(t.value), 0) as totalSpent,
-            CASE 
-                WHEN b.limit_value > 0 THEN (COALESCE(SUM(t.value), 0) / b.limit_value) * 100 
-                ELSE 0 
-            END as percentage
-        FROM categories_budget b
-        LEFT JOIN transactions t ON b.category_name = t.category AND b.user_id = t.user_id AND t.type = 'expense'
-        WHERE b.user_id = ?
-        GROUP BY b.category_name;`,
-        [userId],
-      );
-      resolve(rows);
-    } catch (error) {
-      reject(error);
-    }
-  });
+export const getBudgetEfficiency = async (userId: number): Promise<any[]> => {
+  if (!db) return [];
+  return db.getAllSync(
+    `SELECT 
+        b.category_name as name,
+        b.limit_value as limitValue,
+        COALESCE(SUM(t.value), 0) as totalSpent,
+        CASE 
+            WHEN b.limit_value > 0 THEN (COALESCE(SUM(t.value), 0) / b.limit_value) * 100 
+            ELSE 0 
+        END as percentage
+    FROM categories_budget b
+    LEFT JOIN transactions t ON b.category_name = t.category AND b.user_id = t.user_id AND t.type = 'expense'
+    WHERE b.user_id = ?
+    GROUP BY b.category_name;`,
+    [userId],
+  );
 };
 
 // --- Estatísticas ---
-export const getUserStats = (userId: number) => {
-  return new Promise<any>((resolve, reject) => {
-    if (!db)
-      return resolve({
-        totalIncome: 0,
-        totalExpense: 0,
-        balance: 0,
-        transactionCount: 0,
-      });
-    try {
-      const stats = db.getFirstSync(
-        `SELECT
-          COALESCE(SUM(CASE WHEN type = 'income' THEN value ELSE 0 END), 0) as total_income,
-          COALESCE(SUM(CASE WHEN type = 'expense' THEN value ELSE 0 END), 0) as total_expense,
-          COUNT(*) as transaction_count
-          FROM transactions WHERE user_id = ?;`,
-        [userId],
-      ) as StatsRow;
-      resolve({
-        totalIncome: stats.total_income,
-        totalExpense: stats.total_expense,
-        balance: stats.total_income - stats.total_expense,
-        transactionCount: stats.transaction_count,
-      });
-    } catch (error) {
-      reject(error);
-    }
-  });
+export const getUserStats = async (userId: number): Promise<any> => {
+  if (!db) {
+    return {
+      totalIncome: 0,
+      totalExpense: 0,
+      balance: 0,
+      transactionCount: 0,
+    };
+  }
+
+  const stats = db.getFirstSync(
+    `SELECT
+      COALESCE(SUM(CASE WHEN type = 'income' THEN value ELSE 0 END), 0) as total_income,
+      COALESCE(SUM(CASE WHEN type = 'expense' THEN value ELSE 0 END), 0) as total_expense,
+      COUNT(*) as transaction_count
+     FROM transactions WHERE user_id = ?;`,
+    [userId],
+  ) as StatsRow;
+
+  return {
+    totalIncome: stats.total_income,
+    totalExpense: stats.total_expense,
+    balance: stats.total_income - stats.total_expense,
+    transactionCount: stats.transaction_count,
+  };
 };
 
 // --- Manutenção e Exportação ---
