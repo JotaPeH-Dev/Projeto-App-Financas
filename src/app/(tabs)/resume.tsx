@@ -10,6 +10,24 @@ const screenWidth = Dimensions.get("window").width;
 const formatBRL = (value: number) =>
   value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+// --- FUNÇÃO PARA GERAR COR ÚNICA E CONSISTENTE BASEADA NO TEXTO ---
+const generateColorFromString = (str: string) => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  
+  // Converte para um código hexadecimal de cor estável
+  let color = "#";
+  for (let i = 0; i < 3; i++) {
+    const value = (hash >> (i * 8)) & 0xff;
+    // Ajusta a luminosidade para evitar cores excessivamente claras ou invisíveis no fundo branco
+    const safeValue = Math.floor((value + 50) / 1.3); 
+    color += `00${safeValue.toString(16)}`.slice(-2);
+  }
+  return color;
+};
+
 export default function Resumo() {
   const { user } = useAuth();
   const { transactions } = useTransactions(user?.id);
@@ -25,22 +43,17 @@ export default function Resumo() {
     loadData();
   }, [transactions]);
 
-  const colors = [
-    "#032ad7",
-    "#2ecc71",
-    "#f1c40f",
-    "#e67e22",
-    "#e74c3c",
-    "#9b59b6",
-  ];
-
-  const chartData = efficiencyData.map((item, index) => ({
-    name: item.name,
-    population: item.totalSpent,
-    color: colors[index % colors.length],
-    legendFontColor: "#7F7F7F",
-    legendFontSize: 12,
-  }));
+  // Mapeia os dados aplicando dinamicamente a cor estável a partir do nome da categoria
+  const chartData = efficiencyData.map((item) => {
+    const categoryColor = generateColorFromString(item.name);
+    return {
+      name: item.name,
+      population: item.totalSpent,
+      color: categoryColor,
+      legendFontColor: "#7F7F7F",
+      legendFontSize: 12,
+    };
+  });
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -67,34 +80,39 @@ export default function Resumo() {
             Nenhum gasto planejado encontrado.
           </Text>
         ) : (
-          efficiencyData.map((item, index) => (
-            <View key={index} style={styles.barWrapper}>
-              <View style={styles.barHeader}>
-                <Text style={styles.barLabel}>{item.name}</Text>
-                <Text style={styles.barValues}>
-                  {formatBRL(item.totalSpent)} /{" "}
-                  <Text style={styles.limitText}>
-                    {formatBRL(item.limitValue)}
+          efficiencyData.map((item, index) => {
+            // Pega a mesma cor gerada para a barra de progresso correspondente
+            const categoryColor = generateColorFromString(item.name);
+
+            return (
+              <View key={index} style={styles.barWrapper}>
+                <View style={styles.barHeader}>
+                  <Text style={styles.barLabel}>{item.name}</Text>
+                  <Text style={[styles.barValues, { color: categoryColor }]}>
+                    {formatBRL(item.totalSpent)} /{" "}
+                    <Text style={styles.limitText}>
+                      {formatBRL(item.limitValue)}
+                    </Text>
                   </Text>
+                </View>
+                <View style={styles.bgBar}>
+                  <View
+                    style={[
+                      styles.activeBar,
+                      {
+                        width: `${Math.min(item.percentage, 100)}%`,
+                        // Se ultrapassar o limite fica vermelho, senão usa a cor dinâmica da categoria
+                        backgroundColor: item.percentage >= 100 ? "#EF4444" : categoryColor,
+                      },
+                    ]}
+                  />
+                </View>
+                <Text style={styles.percentageText}>
+                  {item.percentage.toFixed(0)}% do limite
                 </Text>
               </View>
-              <View style={styles.bgBar}>
-                <View
-                  style={[
-                    styles.activeBar,
-                    {
-                      width: `${Math.min(item.percentage, 100)}%`,
-                      backgroundColor:
-                        item.percentage >= 100 ? "#EF4444" : "#032ad7",
-                    },
-                  ]}
-                />
-              </View>
-              <Text style={styles.percentageText}>
-                {item.percentage.toFixed(0)}% do limite
-              </Text>
-            </View>
-          ))
+            );
+          })
         )}
       </View>
     </ScrollView>
@@ -142,7 +160,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   barLabel: { fontSize: 15, fontWeight: "600", color: "#334155" },
-  barValues: { fontSize: 13, fontWeight: "bold", color: "#032ad7" },
+  barValues: { fontSize: 13, fontWeight: "bold" },
   limitText: { color: "#94A3B8", fontWeight: "normal" },
   bgBar: {
     height: 10,

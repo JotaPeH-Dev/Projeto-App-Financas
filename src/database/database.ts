@@ -273,9 +273,9 @@ export const getBudgetEfficiency = async (userId: number): Promise<any[]> => {
         END as percentage
     FROM categories_budget b
     LEFT JOIN transactions t ON b.category_name = t.category AND b.user_id = t.user_id AND t.type = 'expense'
-    WHERE b.user_id = ?
+    WHERE b.user_id = ? AND b.limit_value > 0  -- <--- ESTA LINHA IMPORTANTE FILTRA AS EXCLUÍDAS/ZERADAS
     GROUP BY b.category_name;`,
-    [userId],
+    [userId]
   );
 };
 
